@@ -95,9 +95,8 @@ for _ in range(num_eval_episodes):
  
         if done:
             break
- 
+
     eval_rewards.append(eval_reward)
  
 average_eval_reward = np.mean(eval_rewards)
 print(f"Average Evaluation Reward: {average_eval_reward}")
-
