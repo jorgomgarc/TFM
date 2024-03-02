@@ -7,3 +7,6 @@ def install(package):
 install('numpy')
 install('tensorflow')
 install('gym')
+install('matplotlib')
+install('torch')
+install('IPython')
