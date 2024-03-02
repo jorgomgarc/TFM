@@ -23,6 +23,11 @@ plt.ion()
 # if GPU is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Replay Memory
+#We'll be using experience replay memory for training our DQN. 
+#It stores the transitions that the agent observes, allowing us to reuse this data later. 
+#By sampling from it randomly, the transitions that build up a batch are decorrelated. 
+#It has been shown that this greatly stabilizes and improves the DQN training procedure.
 Transition = namedtuple('Transition',
                         ('state', 'action', 'next_state', 'reward'))
 
@@ -31,14 +36,13 @@ class ReplayMemory(object):
 
     def __init__(self, capacity):
         self.memory = deque([], maxlen=capacity)
-
+    # Save a transition
     def push(self, *args):
-        """Save a transition"""
         self.memory.append(Transition(*args))
-
+    # Randomly sample a batch of transitions
     def sample(self, batch_size):
         return random.sample(self.memory, batch_size)
-
+    # Actual number of stored transitions
     def __len__(self):
         return len(self.memory)
     
@@ -47,7 +51,7 @@ class DQN(nn.Module):
 
     def __init__(self, n_observations, n_actions):
         super(DQN, self).__init__()
-        self.layer1 = nn.Linear(n_observations, 128)
+        self.layer1 = nn.Linear(n_observations, 128) # Linear layer with 128 neurons (complete connected layer)
         self.layer2 = nn.Linear(128, 128)
         self.layer3 = nn.Linear(128, n_actions)
 
@@ -57,6 +61,8 @@ class DQN(nn.Module):
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         return self.layer3(x)
+
+###### Training the DQN ######
     
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
@@ -79,10 +85,12 @@ n_actions = env.action_space.n
 state, info = env.reset()
 n_observations = len(state)
 
+# Initialize policy and target networks
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 
+# Set target network in evaluation mode
 optimizer = optim.AdamW(policy_net.parameters(), lr=LR, amsgrad=True)
 memory = ReplayMemory(10000)
 
@@ -134,6 +142,7 @@ def plot_durations(show_result=False):
         else:
             display.display(plt.gcf())
 
+####### Training loop #######
 def optimize_model():
     if len(memory) < BATCH_SIZE:
         return

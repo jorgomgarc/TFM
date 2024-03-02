@@ -1,0 +1,6 @@
+tensorflow==2.3.0
+torch==2.2.1
+matplotlib==3.7.5
+gym==0.26.2
+numpy==1.24.4
+ipython==8.12.3
