@@ -81,13 +81,16 @@ LR = 1e-4
 
 # Get number of actions from gym action space
 n_actions = env.action_space.n
+print(n_actions)
 # Get the number of state observations
 state, info = env.reset()
 n_observations = len(state)
 
 # Initialize policy and target networks
 policy_net = DQN(n_observations, n_actions).to(device)
+#Policy Network: Esta red se utiliza para decidir qué acción tomar en un estado dado. En cada paso, la red de políticas toma el estado actual del entorno como entrada y produce las acciones posibles como salida. La acción con el valor más alto es la que se selecciona para ejecutar. Esta red se actualiza constantemente a medida que el agente aprende del entorno.
 target_net = DQN(n_observations, n_actions).to(device)
+#Target Network: El propósito de esta red es proporcionar objetivos de aprendizaje estables y evitar oscilaciones o divergencias en el aprendizaje.
 target_net.load_state_dict(policy_net.state_dict())
 
 # Set target network in evaluation mode
@@ -192,7 +195,7 @@ def optimize_model():
 if torch.cuda.is_available():
     num_episodes = 600
 else:
-    num_episodes = 50
+    num_episodes = 250
 
 for i_episode in range(num_episodes):
     # Initialize the environment and get its state
@@ -235,3 +238,9 @@ print('Complete')
 plot_durations(show_result=True)
 plt.ioff()
 plt.show()
+
+# Save the model
+PATH = './policy_net.pth'
+torch.save(policy_net.state_dict(), PATH)
+PATH = './target_net.pth'
+torch.save(target_net.state_dict(), PATH)
