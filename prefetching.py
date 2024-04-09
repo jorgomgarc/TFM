@@ -1,27 +1,59 @@
 import numpy as np
 import random
+import matplotlib.pyplot as plt
+import pdb
 
 CONTENIDO_ARCHIVO = "contenido del archivo"  # Se debe reemplazar con el contenido real del archivo
 
+def generar_popularidad_random():
+    # Se podría cambiar y utilizar otra distribución: la normal o la que sea
+    # Uniform popularity distribution
+    return random.randint(1, 10)
+
+def generar_popularidad_nonuniform():
+    # Non-uniform popularity distribution
+    # Binomial, Poisson, or Zipfian distribution
+    probabilidades = [0.1, 0.2, 0.3, 0.2, 0.2]
+    niveles_popularidad = [1, 2, 3, 4, 5]
+
+    valor_aleatorio = random.random()
+    indice = 0
+    while valor_aleatorio > probabilidades[indice]:
+        valor_aleatorio -= probabilidades[indice]
+        indice += 1
+
+    return niveles_popularidad[indice]
+
+def generar_popularidad():
+    valor_aleatorio = random.random()
+    nivel_popularidad = np.sqrt(valor_aleatorio)
+
+    return int(nivel_popularidad) + 1
 
 def descargar_archivo_del_almacenamiento_principal():
-    # Simulación de la descarga del archivo del almacenamiento principal
-    tiempo_descarga = random.uniform(1, 10)
-    # Simulación del tamaño del archivo
-    bytes_transferidos = len(CONTENIDO_ARCHIVO)
+    # Obtener el tamaño del archivo
+    bytes_archivo = len(CONTENIDO_ARCHIVO)
 
-    return bytes_transferidos, tiempo_descarga
+    # Calcular el tiempo de descarga
+    tiempo_descarga = bytes_archivo / tasa_bits
 
+    # Agregar latencia y variabilidad
+    tiempo_descarga += random.uniform(0.1, 0.5)  # Segundos
 
-def enviar_archivo_al_cliente(contenido_archivo):
+    return bytes_archivo, tiempo_descarga
+
+def dividir_archivo(archivo, numero_partes):
+    partes = []
+    for i in range(numero_partes):
+        contenido = CONTENIDO_ARCHIVO
+        parte = contenido[i::numero_partes]
+        partes.append(parte)
+    return partes
+
+def timepo_envio_archivo():
     # Simulación del envío del archivo al cliente
-    tiempo_envio = len(contenido_archivo) / tasa_bits  # Segundos
-
-    # Se debe implementar la lógica para enviar el archivo al cliente
-
+    tiempo_envio = len(CONTENIDO_ARCHIVO) / tasa_bits  # Segundos
     return tiempo_envio
- 
-
 
 def calcular_tiempo_respuesta_promedio(solicitudes):
     # Lista para almacenar los tiempos de respuesta
@@ -40,8 +72,6 @@ def calcular_tiempo_respuesta_promedio(solicitudes):
 
     return tiempo_respuesta_promedio
 
-
-
 def calcular_tasa_aciertos_cache(solicitudes):
     # Número total de solicitudes
     numero_solicitudes = len(solicitudes)
@@ -51,7 +81,7 @@ def calcular_tasa_aciertos_cache(solicitudes):
 
     # Recorrer todas las solicitudes
     for solicitud in solicitudes:
-        # Si la solicitud fue un hit en la caché
+    # Si la solicitud fue un hit en la caché
         if solicitud["hit_cache"]:
             # Incrementar el número de aciertos en la caché
             numero_aciertos_cache += 1
@@ -61,40 +91,50 @@ def calcular_tasa_aciertos_cache(solicitudes):
 
     return tasa_aciertos_cache
 
-
-
-def calcular_tasa_bits_promedio(solicitudes):
-    # Lista para almacenar las tasas de bits
-    tasas_bits = []
-
-    # Recorrer todas las solicitudes
-    for solicitud in solicitudes:
-        # Calcular la tasa de bits
-        tasa_bits = solicitud["bytes_transferidos"] / solicitud["tiempo_respuesta"]
-
-        # Agregar la tasa de bits a la lista
-        tasas_bits.append(tasa_bits)
-
-    # Calcular la tasa de bits promedio
-    tasa_bits_promedio = np.mean(tasas_bits)
-
-    return tasa_bits_promedio
-
 # Definición de archivos
-archivos = ["arch1", "arch2", "arch3", "arch4", "arch5", "arch6", "arch7", "arch8", "arch9", "arch10", "arch11", "arch12",
-            "arch13", "arch14", "arch15", "arch16", "arch17", "arch18", "arch19", "arch20", "arch21", "arch22", "arch23", "arch24",]
+archivos = [f"arch{i}" for i in range(1, 25)]
+print(archivos)
 
+# Asignar popularidad a los archivos (de forma random)
+archivos_por_popularidad = {}
+popularidad_por_archivo = {}
+popularidades = []
+for archivo in archivos:
+    popularidad = generar_popularidad_random()
+    popularidades.append(popularidad)
+    popularidad_por_archivo[archivo] = popularidad
+    if popularidad not in archivos_por_popularidad:
+        archivos_por_popularidad[popularidad] = []
+    archivos_por_popularidad[popularidad].append(archivo)
+
+# Plotear la distribución de popularidad en archivos
+plt.figure()
+for archivo, popularidad in archivos_por_popularidad.items():
+    plt.bar(popularidad, archivo)
+plt.xlabel("Archivos")
+plt.ylabel("Popularidad")
+plt.title("Popularidad de archivos")
+plt.show()
+
+# Dividir los archivos en partes
+numero_partes = 4
+partes_por_archivo = {}
+for popularidad, archs in archivos_por_popularidad.items():
+    for archivo in archs:
+        partes = dividir_archivo(archivo, numero_partes)
+        partes_por_archivo[archivo] = [f"{archivo}_{i+1}" for i in range(numero_partes)]  # Add naming convention for file parts
+    
 # Definición de clientes
-clientes = ["cli1", "cli2", "cli3", "cli4", "cli5", "cli6"]
+clientes = [f"cli{i}" for i in range(1, 7)]
 
 # Definición del servidor
-capacidad_cache = 10
+capacidad_cache = 5
 
 # Definición del canal
-tasa_bits = 1000000
+tasa_bits = 1000000 # 1 Mbps
 
 # Política de prefetching
-politica_prefetching = "LFU"
+politica_prefetching = "HPF"  # "LRU", "LFU", "HPF
 
 # diccionario con caches de los clientes
 caches = {}
@@ -107,75 +147,96 @@ solicitudes = []
 
 # Simulación del sistema
 for i in range(100):
-  # Generación de solicitud de archivo (el server decide que enviar)
-  cliente = random.choice(clientes)
-  archivo = random.choice(archivos)
+    # Generación de solicitud de archivo (el server decide que enviar)
+    cliente = random.choice(clientes)
+    archivo = random.choice(archivos)
+    
+    # Inicio de la solicitud
+    tiempo_inicio = i
+    
+    # Verificación si el archivo está en la caché
+    if archivo in caches[cliente]:
+        # Hit en la caché
+        print(f"#{i+1}: Hit para {archivo} por {cliente}")
 
-  # Inicio de la solicitud
-  tiempo_inicio = i
+        # Fin de la solicitud
+        tiempo_fin = i
+        hit_cache = True
+        bytes_transferidos = len(CONTENIDO_ARCHIVO)
 
-  # Verificación si el archivo está en la caché
-  if archivo in caches[cliente]:
-    # Hit en la caché
-    print(f"#{i+1}: Hit para {archivo} por {cliente}")
+    else:
+        # Fallo en la caché
+        print(f"#{i+1}: Fallo para {archivo} por {cliente}")
 
-    # Fin de la solicitud
-    tiempo_fin = i
-    hit_cache = True
-    bytes_transferidos = len(CONTENIDO_ARCHIVO)
+        # Prefetch de archivos
+        if politica_prefetching == "LRU":
+            # Se elimina el archivo que menos lleva en la caché
+            if len(caches[cliente]) >= capacidad_cache:
+                archivo_lru = min(caches[cliente].keys(), key=lambda x: caches[cliente][x]["timestamp"] * popularidad_por_archivo[x])
+                del caches[cliente][archivo_lru]
 
-  else:
-    # Fallo en la caché
-    print(f"#{i+1}: Fallo para {archivo} por {cliente}")
+            caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
 
-    # Prefetch de archivos
-    if politica_prefetching == "LRU":
-        # Se elimina el archivo que menos lleva en la caché
-        if len(caches[cliente]) >= capacidad_cache:
-            archivo_lru = min(caches[cliente].keys(), key=lambda x: caches[cliente][x]["timestamp"])
-            del caches[cliente][archivo_lru]
+        elif politica_prefetching == "LFU":
+            # Se elimina el archivo con menor frecuencia
+            if len(caches[cliente]) >= capacidad_cache:
+                archivo_lfu = min(caches[cliente].keys(), key=lambda x: caches[cliente][x]["frecuencia"])
+                del caches[cliente][archivo_lfu]
 
-        caches[cliente][archivo] = {"timestamp": i}
-    elif politica_prefetching == "LFU":
-        # Se elimina el archivo con menor frecuencia
-        if len(caches[cliente]) >= capacidad_cache:
-            archivo_lfu = min(caches[cliente].keys(), key=lambda x: caches[cliente][x]["frecuencia"])
-            del caches[cliente][archivo_lfu]
+            caches[cliente][archivo] = {"frecuencia": i}
 
-        caches[cliente][archivo] = {"frecuencia": i}
+        elif politica_prefetching == "HPF":
+            # Prefetch del archivo más popular
+            # Si el archivo está en la caché, actualizar timestamp
+            if archivo in caches[cliente]:
+                caches[cliente][archivo]["timestamp"] = i
+            else:
+                # Si la caché está llena, eliminar el archivo menos popular
+                if len(caches[cliente]) >= capacidad_cache:
+                    archivo_menos_popular = min(caches[cliente].keys(), key=lambda x: caches[cliente][x]["popularidad"])
+                    del caches[cliente][archivo_menos_popular]
+
+                # Agregar el archivo a la caché y establecer su popularidad
+                caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
+
 
     # Descarga del archivo del almacenamiento principal
     bytes_transferidos, tiempo_descarga = descargar_archivo_del_almacenamiento_principal()
 
     # Envío del archivo al cliente
-    tiempo_envio = enviar_archivo_al_cliente(CONTENIDO_ARCHIVO)
+    tiempo_envio = timepo_envio_archivo()
 
     # Fin de la solicitud
     tiempo_fin = i + tiempo_descarga + tiempo_envio
     hit_cache = False
     bytes_transferidos = len(CONTENIDO_ARCHIVO)
 
-  # Almacenamiento de información de la solicitud
-  solicitudes.append({
+    # Almacenamiento de información de la solicitud
+    solicitudes.append({
     "tiempo_inicio": tiempo_inicio,
     "tiempo_fin": tiempo_fin,
     "hit_cache": hit_cache,
     "bytes_transferidos": bytes_transferidos,
     "timepo_respuesta": tiempo_fin - tiempo_inicio,
   })
-  for cliente in clientes:
-    print(f"Cache de {cliente}: {caches[cliente]}") 
+  
 
 print("Simulación finalizada.")
-# for cliente in clientes:
-#   print(f"Cache del cliente {cliente}: {caches[cliente]}")  
 
 # Medición del rendimiento
 tiempo_respuesta_promedio = calcular_tiempo_respuesta_promedio(solicitudes)
 tasa_aciertos_cache = calcular_tasa_aciertos_cache(solicitudes)
-#tasa_bits_promedio = calcular_tasa_bits_promedio(solicitudes)
 
 print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
-#print(f"Tasa de bits promedio: {tasa_bits_promedio}")
 
+# Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
+for cliente, cache in caches.items():
+    archivos = list(cache.keys())
+    plt.figure()
+    popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
+    plt.bar(archivos, popularidades)
+    plt.xlabel("Archivos")
+    plt.ylabel("Popularidad")
+    plt.title(f"Archivos en la caché de {cliente}")
+    plt.show()
