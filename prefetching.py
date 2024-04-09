@@ -5,6 +5,10 @@ import pdb
 
 CONTENIDO_ARCHIVO = "contenido del archivo"  # Se debe reemplazar con el contenido real del archivo
 
+#########################################################
+# Function definition
+#########################################################
+
 def generar_popularidad_random():
     # Se podría cambiar y utilizar otra distribución: la normal o la que sea
     # Uniform popularity distribution
@@ -91,6 +95,10 @@ def calcular_tasa_aciertos_cache(solicitudes):
 
     return tasa_aciertos_cache
 
+##########################################################
+# Parameters definition
+##########################################################
+
 # Definición de archivos
 archivos = [f"arch{i}" for i in range(1, 25)]
 print(archivos)
@@ -128,7 +136,7 @@ for popularidad, archs in archivos_por_popularidad.items():
 clientes = [f"cli{i}" for i in range(1, 7)]
 
 # Definición del servidor
-capacidad_cache = 5
+capacidad_cache = 10
 
 # Definición del canal
 tasa_bits = 1000000 # 1 Mbps
