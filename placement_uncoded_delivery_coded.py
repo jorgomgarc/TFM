@@ -1,7 +1,9 @@
+import os
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 import pdb
+import utils
 
 CONTENIDO_ARCHIVO = "contenido del archivo"  # Se debe reemplazar con el contenido real del archivo
 
@@ -14,37 +16,23 @@ def generar_popularidad_random():
     # Uniform popularity distribution
     return random.randint(1, 10)
 
-def generar_popularidad_nonuniform():
-    # Non-uniform popularity distribution
-    # Binomial, Poisson, or Zipfian distribution
-    probabilidades = [0.1, 0.2, 0.3, 0.2, 0.2]
-    niveles_popularidad = [1, 2, 3, 4, 5]
-
-    valor_aleatorio = random.random()
-    indice = 0
-    while valor_aleatorio > probabilidades[indice]:
-        valor_aleatorio -= probabilidades[indice]
-        indice += 1
-
-    return niveles_popularidad[indice]
-
-def generar_popularidad():
-    valor_aleatorio = random.random()
-    nivel_popularidad = np.sqrt(valor_aleatorio)
-
-    return int(nivel_popularidad) + 1
+def rellenar_archivo(archivo, size):
+    letras = list("abcdefghijklmnñopqrstuvwxyz")
+    random.shuffle(letras)
+    with open(archivo, "wb") as f:
+        for _ in range(size):
+            if letras:  # Check if letras is not empty before popping
+                letra = random.choice(letras).encode("utf-8")
+                f.write(letra)
 
 def descargar_archivo_del_almacenamiento_principal():
-    # Obtener el tamaño del archivo
-    bytes_archivo = len(CONTENIDO_ARCHIVO)
-
     # Calcular el tiempo de descarga
-    tiempo_descarga = bytes_archivo / tasa_bits
+    tiempo_descarga = size / tasa_bits
 
     # Agregar latencia y variabilidad
     tiempo_descarga += random.uniform(0.1, 0.5)  # Segundos
 
-    return bytes_archivo, tiempo_descarga
+    return tiempo_descarga
 
 def dividir_archivo(archivo, numero_partes):
     partes = []
@@ -54,9 +42,9 @@ def dividir_archivo(archivo, numero_partes):
         partes.append(parte)
     return partes
 
-def timepo_envio_archivo():
+def tiempo_envio_archivo():
     # Simulación del envío del archivo al cliente
-    tiempo_envio = len(CONTENIDO_ARCHIVO) / tasa_bits  # Segundos
+    tiempo_envio = size / tasa_bits  # Segundos
     return tiempo_envio
 
 def calcular_tiempo_respuesta_promedio(solicitudes):
@@ -95,13 +83,69 @@ def calcular_tasa_aciertos_cache(solicitudes):
 
     return tasa_aciertos_cache
 
+def generate_coded_packets(server_files, user_requests, cache_sizes):
+    """
+    Genera paquetes codificados usando XOR para la entrega de la fase de caché codificada.
+
+    Args:
+        server_files: Lista de listas, donde cada lista interna representa partes de un archivo.
+        user_requests: Diccionario, donde las claves son usuarios y los valores son números de partes solicitadas.
+        cache_sizes: Lista de enteros que representan los tamaños de caché para cada usuario.
+
+    Returns:
+        Diccionario, donde las claves son usuarios y los valores son listas de paquetes codificados.
+    """
+
+    coded_packets = {}
+    for user, requested_parts in user_requests.items():
+        cached_parts = random.sample(server_files, cache_sizes[user])
+        coded_packets[user] = []
+        for requested_part in requested_parts:
+            packet = cached_parts[0] ^ cached_parts[1]
+            for i in range(2, len(cached_parts)):
+                packet ^= cached_parts[i]
+                coded_packets[user].append(packet)
+
+    return coded_packets
+
+def decode_parts(cache_sizes, user_requests, coded_packets):
+    """
+    Permite a los usuarios decodificar las partes solicitadas utilizando la caché y los paquetes recibidos.
+
+    Args:
+        cache_sizes: Lista de enteros que representan los tamaños de caché para cada usuario.
+        user_requests: Diccionario, donde las claves son usuarios y los valores son números de partes solicitadas.
+        coded_packets: Diccionario, donde las claves son usuarios y los valores son listas de paquetes codificados.
+
+    Returns:
+        Diccionario, donde las claves son usuarios y los valores son las partes decodificadas.
+    """
+
+    decoded_parts = {}
+    for user, requested_parts in user_requests.items():
+        decoded_parts[user] = []
+        for i, requested_part in enumerate(requested_parts):
+            cached_parts = random.sample(server_files, cache_sizes[user])
+            decoded_part = cached_parts[0] ^ coded_packets[user][i]
+            for j in range(1, len(cached_parts)):
+                decoded_part ^= cached_parts[j]
+            decoded_parts[user].append(decoded_part)
+
+    return decoded_parts
+
 ##########################################################
 # Parameters definition
 ##########################################################
 
 # Definición de archivos
-archivos = [f"arch{i}" for i in range(1, 25)]
-print(archivos)
+archivos = [f"arch{i}" for i in range(1, 21)]
+
+# Tamaño de los archivos
+size = 1000  # 10 bytes
+
+# Rellenar los archivos
+for archivo in archivos:
+    rellenar_archivo(archivo, size)
 
 # Asignar popularidad a los archivos (de forma random)
 archivos_por_popularidad = {}
@@ -122,15 +166,17 @@ for archivo, popularidad in archivos_por_popularidad.items():
 plt.xlabel("Archivos")
 plt.ylabel("Popularidad")
 plt.title("Popularidad de archivos")
-plt.show()
+plt.show(block=False)
 
 # Dividir los archivos en partes
 numero_partes = 4
 partes_por_archivo = {}
-for popularidad, archs in archivos_por_popularidad.items():
-    for archivo in archs:
-        partes = dividir_archivo(archivo, numero_partes)
-        partes_por_archivo[archivo] = [f"{archivo}_{i+1}" for i in range(numero_partes)]  # Add naming convention for file parts
+for archivo in archivos:
+    partes = dividir_archivo(archivo, numero_partes)
+    partes_por_archivo[archivo] = [f"{archivo}_{i+1}" for i in range(numero_partes)]
+
+    print(partes_por_archivo[archivo])
+
     
 # Definición de clientes
 clientes = [f"cli{i}" for i in range(1, 7)]
@@ -144,7 +190,7 @@ tasa_bits = 1000000 # 1 Mbps
 # Política de prefetching
 politica_prefetching = "HPF"  # "LRU", "LFU", "HPF
 
-# diccionario con caches de los clientes
+# Diccionario con caches de los clientes
 caches = {}
 
 for cliente in clientes:
@@ -152,12 +198,25 @@ for cliente in clientes:
 
 # Solicitudes
 solicitudes = []
+# Peticiones
+peticiones = {}
+
+# Diccionario en el que se guarda el estado de las caches de los clientes
+servidor = {}
+for cliente in clientes:
+    servidor[cliente] = {}
+    for archivo in archivos:
+        for parte in partes_por_archivo[archivo]:
+            servidor[cliente][archivo][parte] = 0
+
+print(servidor)
+pdb.set_trace()
 
 # Simulación del sistema
 for i in range(100):
-    # Generación de solicitud de archivo (el server decide que enviar)
-    cliente = random.choice(clientes)
-    archivo = random.choice(archivos)
+    # Generación de peticiones:
+    for cliente in clientes:
+        peticiones[cliente] = random.choice(archivos)
     
     # Inicio de la solicitud
     tiempo_inicio = i
