@@ -1,3 +1,4 @@
+import collections
 import random
 import numpy as np
 
@@ -73,6 +74,12 @@ def calcular_tasa_aciertos_cache(solicitudes):
     # plt.show()
 
     return tasa_aciertos_cache
+
+def comprobar_peticiones_repetidas(peticiones):
+    # Comprobar si hay peticiones repetidas
+    peticiones_repetidas = [item for item, count in collections.Counter(peticiones).items() if count > 1]
+
+    return peticiones_repetidas
 
 
 

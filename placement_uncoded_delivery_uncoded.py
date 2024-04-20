@@ -1,5 +1,3 @@
-import os
-import numpy as np
 import random
 import matplotlib.pyplot as plt
 import pdb
@@ -10,10 +8,19 @@ import utils
 ##########################################################
 
 # Definición de archivos
-archivos = [f"arch{i}" for i in range(1, 21)]
+archivos = [f"arch{i}" for i in range(1, 51)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
+
+# Definición de clientes
+clientes = [f"cli{i}" for i in range(1, 11)]
+
+# Definición del servidor
+capacidad_cache = 10
+
+# Definición del canal
+tasa_bits = 1000000 # 1 Mbps
 
 # Rellenar los archivos
 for archivo in archivos:
@@ -40,20 +47,11 @@ plt.ylabel("Popularidad")
 plt.title("Popularidad de archivos")
 plt.show(block=False)
 
-# Definición de clientes
-clientes = [f"cli{i}" for i in range(1, 7)]
-
-# Definición del servidor
-capacidad_cache = 10
-
-# Definición del canal
-tasa_bits = 1000000 # 1 Mbps
-
 # Política de prefetching
 politica_prefetching = "LFU"  # "LRU", "LFU", "HPF
 frecuencia = {}
 
-# diccionario con caches de los clientes
+# Diccionario con caches de los clientes
 caches = {}
 
 for cliente in clientes:
@@ -65,14 +63,13 @@ solicitudes = []
 # Peticiones
 peticiones = []
 
-# Estado de las caches:
+# Estado de las caches (lo que conoce el servidor):
 servidor = {}
 for cliente in clientes:
     servidor[cliente] = {}
     for archivo in archivos:
             servidor[cliente][archivo] = 0
 
-print(servidor)
 ##########################################################
 # Placement phase
 ##########################################################
@@ -103,11 +100,13 @@ for cliente, cache in caches.items():
 ##########################################################
 
 # Simulación del sistema
-for i in range(10):
-    # Generación de solicitud de archivo (el server decide que enviar)
+for i in range(10): # nº solicitudes
+    # Generación de peticiones de archivo por cada cliente
     for cliente in clientes:
-        archivo = random.choice(archivos)
+        archivo = random.choice(archivos) # Selecciono un archivo aleatorio
+        # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
+        
         # Compruebo si el cliente tiene cacheado dicho archivo
         if caches[cliente].get(archivo) is None:
             peticiones.append(peticion)
@@ -128,6 +127,10 @@ for i in range(10):
             hit_cache = True
             bytes_transferidos = size
 
+    print(peticiones)
+    pdb.set_trace()
+    # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
+    peticiones = utils.comprobar_peticiones_repetidas(peticiones)
     print(peticiones)
     pdb.set_trace()
     # Enviar mensajes a los clientes para entregar los archivos solicitados
