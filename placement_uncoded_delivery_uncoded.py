@@ -8,13 +8,13 @@ import utils
 ##########################################################
 
 # Definición de archivos
-archivos = [f"file_{i}" for i in range(1, 501)]
+archivos = [f"file_{i}" for i in range(1, 31)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
 
 # Definición de clientes
-clientes = [f"cli_{i}" for i in range(1, 11)]
+clientes = [f"cli_{i}" for i in range(1, 31)]
 
 # Definición del servidor
 capacidad_cache = 10
@@ -63,26 +63,23 @@ solicitudes = []
 # Peticiones
 peticiones = []
 
-# Estado de las caches (lo que conoce el servidor):
-servidor = {}
-for cliente in clientes:
-    servidor[cliente] = {}
-    for archivo in archivos:
-            servidor[cliente][archivo] = 0
-
 ##########################################################
 # Placement phase
 ##########################################################
 
+politica_prefetching = "popularidad"  # "random", "popularidad
+
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
     # Implemento HPF
-    archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
+    if politica_prefetching == "random":
+        archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
+    elif politica_prefetching == "popularidad":
+        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill 'archivos_cliente' with random files
 
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
         caches[cliente][archivo] = {"timestamp": 0, "popularidad": popularidad_por_archivo[archivo]}
-        servidor[cliente][archivo] = 1
 
 # Plotear los archivos en cada cache de cada cliente ANTES de delivery phase
 # for cliente, cache in caches.items():
@@ -100,7 +97,8 @@ for cliente, cache in caches.items():
 ##########################################################
 cache_hits = 0
 cache_hits_list = []
-num_solicitudes = 1500
+num_solicitudes = 100
+politica_delivery = "popularidad"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
@@ -108,8 +106,11 @@ for i in range(num_solicitudes): # nº solicitudes
     cache_hits = 0
     # Generación de peticiones de archivo por cada cliente
     for cliente in clientes:
-        archivo = random.choice(archivos) # Selecciono un archivo aleatorio
-       # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
+        if politica_delivery == "random":
+            archivo = random.choice(archivos) # Selecciono un archivo aleatorio
+        elif politica_delivery == "popularidad":
+            archivo = random.choices(archivos, weights=[popularidad_por_archivo[x] for x in archivos])[0] # Selecciono un archivo con mayor probabilidad basado en su popularidad
+        # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
         
         # Compruebo si el cliente tiene cacheado dicho archivo
@@ -208,11 +209,13 @@ print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
 
 # Plot the cache hits
-plt.plot(range(num_solicitudes*capacidad_cache), cache_hits_list)
+plt.figure()
+plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
 plt.xlabel('Número de solicitudes')
 plt.ylabel('Aciertos de caché')
 plt.title('Aciertos de caché vs. Número de solicitudes')
 plt.show()
+
 
 if politica_prefetching == "HPF":
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
@@ -224,7 +227,7 @@ if politica_prefetching == "HPF":
         plt.xlabel("Archivos")
         plt.ylabel("Popularidad")
         plt.title(f"Archivos en la caché de {cliente}")
-        plt.show(block=False)
+        plt.show()
 elif politica_prefetching == "LFU":
 # Plotear los archivos en cada cache de cada cliente y su frecuencia
     for cliente, cache in caches.items():
@@ -238,4 +241,4 @@ elif politica_prefetching == "LFU":
         plt.show(block=False)
 
 
-#plt.show()
+plt.show()
