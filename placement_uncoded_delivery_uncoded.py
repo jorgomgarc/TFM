@@ -8,13 +8,13 @@ import utils
 ##########################################################
 
 # Definición de archivos
-archivos = [f"arch{i}" for i in range(1, 51)]
+archivos = [f"file_{i}" for i in range(1, 501)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
 
 # Definición de clientes
-clientes = [f"cli{i}" for i in range(1, 11)]
+clientes = [f"cli_{i}" for i in range(1, 11)]
 
 # Definición del servidor
 capacidad_cache = 10
@@ -39,16 +39,16 @@ for archivo in archivos:
     archivos_por_popularidad[popularidad].append(archivo)
 
 # Plotear la distribución de popularidad por archivos
-plt.figure()
-for archivo, popularidad in popularidad_por_archivo.items():
-    plt.bar(archivo, popularidad)
-plt.xlabel("Archivos")
-plt.ylabel("Popularidad")
-plt.title("Popularidad de archivos")
-plt.show(block=False)
+# plt.figure()
+# for archivo, popularidad in popularidad_por_archivo.items():
+#     plt.bar(archivo, popularidad)
+# plt.xlabel("Archivos")
+# plt.ylabel("Popularidad")
+# plt.title("Popularidad de archivos")
+# plt.show(block=False)
 
 # Política de prefetching
-politica_prefetching = "LFU"  # "LRU", "LFU", "HPF
+politica_prefetching = "HPF"  # "LRU", "LFU", "HPF
 frecuencia = {}
 
 # Diccionario con caches de los clientes
@@ -98,13 +98,18 @@ for cliente, cache in caches.items():
 ##########################################################
 # Delivery phase
 ##########################################################
-
+cache_hits = 0
+cache_hits_list = []
+num_solicitudes = 1500
 # Simulación del sistema
-for i in range(10): # nº solicitudes
+for i in range(num_solicitudes): # nº solicitudes
+    # Resetear las variables
+    peticiones = []
+    cache_hits = 0
     # Generación de peticiones de archivo por cada cliente
     for cliente in clientes:
         archivo = random.choice(archivos) # Selecciono un archivo aleatorio
-        # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
+       # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
         
         # Compruebo si el cliente tiene cacheado dicho archivo
@@ -112,8 +117,9 @@ for i in range(10): # nº solicitudes
             peticiones.append(peticion)
         else:
             # Hit en la caché
-            print(f"#{i+1}: Hit para {archivo} por {cliente}")
+            #print(f"#{i+1}: Hit para {archivo} por {cliente}")
             caches[cliente][archivo]["timestamp"] = i
+            tiempo_inicio = i  
             # Actualizo la frecuencia del archivo
             # Si el archivo ya está en el diccionario, incrementa su frecuencia
             if archivo in frecuencia[cliente]:
@@ -125,41 +131,30 @@ for i in range(10): # nº solicitudes
             # Fin de la solicitud
             tiempo_fin = i
             hit_cache = True
-            bytes_transferidos = size
-
-    print(peticiones)
-    pdb.set_trace()
+            cache_hits += 1
+            bytes_transferidos = 0
+            # Almacenamiento de información de la solicitud
+            solicitudes.append({
+                "tiempo_inicio": tiempo_inicio,
+                "tiempo_fin": tiempo_fin,
+                "hit_cache": hit_cache,
+                "bytes_transferidos": bytes_transferidos,
+            })
+        cache_hits_list.append(cache_hits)
+    
     # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
-    peticiones = utils.comprobar_peticiones_repetidas(peticiones)
-    print(peticiones)
-    pdb.set_trace()
+    archivos_a_enviar = utils.comprobar_peticiones_repetidas(peticiones)
+    tiempo_inicio = i
     # Enviar mensajes a los clientes para entregar los archivos solicitados
+    # Calcular el tiempo en enviar los archivos a los clientes
+    tiempo_envio = utils.tiempo_envio_archivos(archivos_a_enviar, tasa_bits, size)
+    
+    # Actualizar las caches de los clientes:
     for peticion in peticiones:
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
-        if servidor[cliente][archivo] == 1:
-            print(f"Enviando archivo {archivo} a {cliente}")
-            # Aquí iría el código para enviar el archivo al cliente
-        else:
-            print(f"El archivo {archivo} no está disponible en el servidor para {cliente}")
-    # Inicio de la solicitud
-    tiempo_inicio = i
-    
-    
-    # Verificación si el archivo está en la caché
-    if archivo in caches[cliente]:
-        # Hit en la caché
-        print(f"#{i+1}: Hit para {archivo} por {cliente}")
-        caches[cliente][archivo]["timestamp"] = i
-        
-        # Fin de la solicitud
-        tiempo_fin = i
-        hit_cache = True
-        bytes_transferidos = size
-
-    else:
-        # Fallo en la caché
-        print(f"#{i+1}: Fallo para {archivo} por {cliente}")
+        caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
+        #print(f"#{i+1}: Fallo para {archivo} por {cliente}")
 
         # Actualización de la cache
         if politica_prefetching == "LFU":
@@ -185,21 +180,19 @@ for i in range(10): # nº solicitudes
         # Descarga del archivo del almacenamiento principal
         tiempo_descarga = utils.descargar_archivo_del_almacenamiento_principal(size, tasa_bits)
 
-        # Envío del archivo al cliente
-        tiempo_envio = utils.tiempo_envio_archivo(size, tasa_bits)
-
         # Fin de la solicitud
         tiempo_fin = i + tiempo_descarga + tiempo_envio
         hit_cache = False
-        bytes_transferidos = size
+        bytes_transferidos = size * len(archivos_a_enviar)
 
-    # Almacenamiento de información de la solicitud
-    solicitudes.append({
-    "tiempo_inicio": tiempo_inicio,
-    "tiempo_fin": tiempo_fin,
-    "hit_cache": hit_cache,
-    "bytes_transferidos": bytes_transferidos,
-  })
+        # Almacenamiento de información de la solicitud
+        solicitudes.append({
+            "tiempo_inicio": tiempo_inicio,
+            "tiempo_fin": tiempo_fin,
+            "hit_cache": hit_cache,
+            "bytes_transferidos": bytes_transferidos,
+        })
+    #pdb.set_trace()
   
 #############################################################
 # Plotear y printear resultados
@@ -213,6 +206,13 @@ tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 
 print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
+
+# Plot the cache hits
+plt.plot(range(num_solicitudes*capacidad_cache), cache_hits_list)
+plt.xlabel('Número de solicitudes')
+plt.ylabel('Aciertos de caché')
+plt.title('Aciertos de caché vs. Número de solicitudes')
+plt.show()
 
 if politica_prefetching == "HPF":
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
@@ -238,4 +238,4 @@ elif politica_prefetching == "LFU":
         plt.show(block=False)
 
 
-plt.show()
+#plt.show()

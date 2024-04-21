@@ -1,6 +1,7 @@
 import collections
 import random
 import numpy as np
+import pdb
 
 def generar_popularidad_random():
     # Se podría cambiar y utilizar otra distribución: la normal o la que sea
@@ -10,7 +11,7 @@ def generar_popularidad_random():
 def rellenar_archivo(archivo, size):
     letras = list("abcdefghijklmnñopqrstuvwxyz")
     random.shuffle(letras)
-    with open(archivo, "wb") as f:
+    with open("files/"+archivo, "wb") as f:
         for _ in range(size):
             if letras:  # Check if letras is not empty before popping
                 letra = random.choice(letras).encode("utf-8")
@@ -25,11 +26,6 @@ def descargar_archivo_del_almacenamiento_principal(size, tasa_bits):
     tiempo_descarga += random.uniform(0.1, 0.5)  # Segundos
 
     return tiempo_descarga
-
-def tiempo_envio_archivo(size, tasa_bits):
-    # Simulación del envío del archivo al cliente
-    tiempo_envio = size / tasa_bits  # Segundos
-    return tiempo_envio
 
 def calcular_tiempo_respuesta_promedio(solicitudes):
     # Lista para almacenar los tiempos de respuesta
@@ -65,22 +61,88 @@ def calcular_tasa_aciertos_cache(solicitudes):
     # Calcular la tasa de aciertos en la caché
     tasa_aciertos_cache = numero_aciertos_cache / numero_solicitudes
 
-    # Plotear la tasa de aciertos en la caché
-    # plt.figure()
-    # plt.plot(numero_aciertos_cache)
-    # plt.xlabel("Solicitudes")
-    # plt.ylabel("Tasa de aciertos en la caché")
-    # plt.title("Tasa de aciertos en la caché")
-    # plt.show()
-
     return tasa_aciertos_cache
 
 def comprobar_peticiones_repetidas(peticiones):
-    # Comprobar si hay peticiones repetidas
-    peticiones_repetidas = [item for item, count in collections.Counter(peticiones).items() if count > 1]
+    # Obtener la lista de archivos y clientes de las peticiones
+    archivos = [peticion["archivo"] for peticion in peticiones]
 
-    return peticiones_repetidas
+    # Comprobar si hay archivos o clientes repetidos
+    archivos_repetidos = [item for item, count in collections.Counter(archivos).items() if count > 1]
 
+    # Eliminar los archivos y clientes repetidos
+    archivos_sin_repetir = list(set(archivos))
+
+    return archivos_sin_repetir
+
+def tiempo_envio_archivos(archivos_a_enviar, tasa_bits, size):
+    # Simulación del envío del archivo al cliente
+    total_size = sum([size for archivo in archivos_a_enviar])
+    tiempo_envio = total_size / tasa_bits  # Segundos
+    return tiempo_envio
+
+
+################################################
+# Uncoded - Coded
+################################################
+
+def dividir_archivo(archivo, numero_partes):
+    partes = []
+    for i in range(numero_partes):
+        contenido = archivo
+        parte = contenido[i::numero_partes]
+        partes.append(parte)
+    return partes
+
+def generate_coded_packets(server_files, user_requests, cache_sizes):
+    """
+    Genera paquetes codificados usando XOR para la entrega de la fase de caché codificada.
+
+    Args:
+        server_files: Lista de listas, donde cada lista interna representa partes de un archivo.
+        user_requests: Diccionario, donde las claves son usuarios y los valores son números de partes solicitadas.
+        cache_sizes: Lista de enteros que representan los tamaños de caché para cada usuario.
+
+    Returns:
+        Diccionario, donde las claves son usuarios y los valores son listas de paquetes codificados.
+    """
+
+    coded_packets = {}
+    for user, requested_parts in user_requests.items():
+        cached_parts = random.sample(server_files, cache_sizes[user])
+        coded_packets[user] = []
+        for requested_part in requested_parts:
+            packet = cached_parts[0] ^ cached_parts[1]
+            for i in range(2, len(cached_parts)):
+                packet ^= cached_parts[i]
+                coded_packets[user].append(packet)
+
+    return coded_packets
+
+def decode_parts(cache_sizes, user_requests, coded_packets):
+    """
+    Permite a los usuarios decodificar las partes solicitadas utilizando la caché y los paquetes recibidos.
+
+    Args:
+        cache_sizes: Lista de enteros que representan los tamaños de caché para cada usuario.
+        user_requests: Diccionario, donde las claves son usuarios y los valores son números de partes solicitadas.
+        coded_packets: Diccionario, donde las claves son usuarios y los valores son listas de paquetes codificados.
+
+    Returns:
+        Diccionario, donde las claves son usuarios y los valores son las partes decodificadas.
+    """
+
+    decoded_parts = {}
+    for user, requested_parts in user_requests.items():
+        decoded_parts[user] = []
+        for i, requested_part in enumerate(requested_parts):
+            cached_parts = random.sample(server_files, cache_sizes[user])
+            decoded_part = cached_parts[0] ^ coded_packets[user][i]
+            for j in range(1, len(cached_parts)):
+                decoded_part ^= cached_parts[j]
+            decoded_parts[user].append(decoded_part)
+
+    return decoded_parts
 
 
 
@@ -90,31 +152,39 @@ def comprobar_peticiones_repetidas(peticiones):
 def find_largest_clique(requests, caches):
     # Discard users without any request
     aux = [i for i, req in enumerate(requests) if req != 0]
-    requests = requests[aux]
-    caches = caches[:, aux]
+    requests_aux = [0 for _ in range(len(aux))]
+    caches_aux = [[0 for _ in range(len(aux))] for _ in range(len(caches))]
+    for i in range(len(aux)):
+        requests_aux[i] = requests[aux[i]]
+        
+    caches_aux = [[fila[i] for i in aux] for fila in caches]
+
+
     usrs_with_req = aux
     n_left = len(aux)  # number of users remaining
-
     max_clique_len = 0
     usr_clique = []
 
     for i in range(n_left):  # loop over users i
-        req_i = requests[i]  # request from current user
+        req_i = requests_aux[i]  # request from current user
         usr_candidates = []  # This will store the candidates to form a clique with current user
+        caches_aux = np.array(caches_aux)
 
-        for j in range(i + 1, caches.shape[1]):  # Loop over users later than i
-            if any(caches[:, j] == req_i) or requests[j] == req_i:  # Do nothing unless user j stores or demands req_i
-                req_j = requests[j]
-                if any(caches[:, i] == req_j) or req_i == req_j:  # If current user stores or demands req_j...
+        for j in range(i + 1, caches_aux.shape[1]):  # Loop over users later than i
+            if any(caches_aux[:, j] == req_i) or requests_aux[j] == req_i:  # Do nothing unless user j stores or demands req_i
+                req_j = requests_aux[j]
+                if any(caches_aux[:, i] == req_j) or req_i == req_j:  # If current user stores or demands req_j...
                     usr_candidates.append(j)  # ...store as viable candidate
-
+                    
         # Find largest clique that includes current user i
         if not usr_candidates:
             clique_i = [usrs_with_req[i]]
         elif max_clique_len >= 1 + len(usr_candidates):
             clique_i = []  # I already have a clique larger than all the candidates
         else:
-            aux = find_largest_clique(requests[usr_candidates], caches[:, usr_candidates])
+            #pdb.set_trace()
+            selected_requests = [requests_aux[i] for i in usr_candidates]
+            aux = find_largest_clique(selected_requests, caches_aux[:, usr_candidates])
             aux = [usr_candidates[k] for k in aux]
             clique_i = [usrs_with_req[i]] + aux
 
