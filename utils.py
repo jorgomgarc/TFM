@@ -152,39 +152,31 @@ def decode_parts(cache_sizes, user_requests, coded_packets):
 def find_largest_clique(requests, caches):
     # Discard users without any request
     aux = [i for i, req in enumerate(requests) if req != 0]
-    requests_aux = [0 for _ in range(len(aux))]
-    caches_aux = [[0 for _ in range(len(aux))] for _ in range(len(caches))]
-    for i in range(len(aux)):
-        requests_aux[i] = requests[aux[i]]
-        
-    caches_aux = [[fila[i] for i in aux] for fila in caches]
-
-
+    requests_np = np.array(requests)
+    requests_aux = requests_np[aux]
+    matriz_aux = caches[:, aux]
     usrs_with_req = aux
     n_left = len(aux)  # number of users remaining
     max_clique_len = 0
     usr_clique = []
-
+    
     for i in range(n_left):  # loop over users i
         req_i = requests_aux[i]  # request from current user
         usr_candidates = []  # This will store the candidates to form a clique with current user
-        caches_aux = np.array(caches_aux)
 
-        for j in range(i + 1, caches_aux.shape[1]):  # Loop over users later than i
-            if any(caches_aux[:, j] == req_i) or requests_aux[j] == req_i:  # Do nothing unless user j stores or demands req_i
+        for j in range(i + 1, matriz_aux.shape[1]):  # Loop over users later than i
+            if any(matriz_aux[:, j] == req_i) or requests_aux[j] == req_i:  # Do nothing unless user j stores or demands req_i
                 req_j = requests_aux[j]
-                if any(caches_aux[:, i] == req_j) or req_i == req_j:  # If current user stores or demands req_j...
+                if any(matriz_aux[:, i] == req_j) or req_i == req_j:  # If current user stores or demands req_j...
                     usr_candidates.append(j)  # ...store as viable candidate
-                    
+           
         # Find largest clique that includes current user i
         if not usr_candidates:
             clique_i = [usrs_with_req[i]]
         elif max_clique_len >= 1 + len(usr_candidates):
             clique_i = []  # I already have a clique larger than all the candidates
         else:
-            #pdb.set_trace()
-            selected_requests = [requests_aux[i] for i in usr_candidates]
-            aux = find_largest_clique(selected_requests, caches_aux[:, usr_candidates])
+            aux = find_largest_clique(requests_aux[usr_candidates], matriz_aux[:, usr_candidates])
             aux = [usr_candidates[k] for k in aux]
             clique_i = [usrs_with_req[i]] + aux
 

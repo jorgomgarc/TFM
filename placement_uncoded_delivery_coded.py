@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pdb
 from pprint import pprint
 import utils
+import numpy as np
 
 
 ##########################################################
@@ -32,13 +33,13 @@ for archivo in archivos:
     archivos_por_popularidad[popularidad].append(archivo)
 
 # Plotear la distribución de popularidad en archivos
-plt.figure()
-for archivo, popularidad in archivos_por_popularidad.items():
-    plt.bar(popularidad, archivo)
-plt.xlabel("Archivos")
-plt.ylabel("Popularidad")
-plt.title("Popularidad de archivos")
-plt.show(block=False)
+# plt.figure()
+# for archivo, popularidad in archivos_por_popularidad.items():
+#     plt.bar(popularidad, archivo)
+# plt.xlabel("Archivos")
+# plt.ylabel("Popularidad")
+# plt.title("Popularidad de archivos")
+# plt.show(block=False)
 
 # Dividir los archivos en partes
 # numero_partes = 4
@@ -70,14 +71,6 @@ solicitudes = []
 # Peticiones
 peticiones = []
 
-# Diccionario en el que se guarda el estado de las caches de los clientes
-servidor = {}
-for cliente in clientes:
-    servidor[cliente] = {}
-    for archivo in archivos:
-        # for parte in partes_por_archivo[archivo]:
-        servidor[cliente][archivo] = 0
-
 ##########################################################
 # Prefetching phase
 ##########################################################
@@ -85,26 +78,22 @@ for cliente in clientes:
 # implementar prefetching de acuerdo con clique algorithm
 
 K = len(clientes)
-M = len(archivos)
+M = capacidad_cache
 
-caches_m = [[0 for _ in range(M)] for _ in range(K)]
+caches_np = matriz_np = np.zeros((M, K), dtype=int)
 
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
     # Implemento HPF
     archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
-    
+    cliente_int = int(cliente.split('_')[-1])
+    #print(cliente_int)
+    archivos_cliente_int = [int(archivo.split('_')[-1]) for archivo in archivos_cliente]
+    caches_np[:, cliente_int-1] = archivos_cliente_int
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
         caches[cliente][archivo] = {"timestamp": 0, "popularidad": popularidad_por_archivo[archivo]}
-        servidor[cliente][archivo] = 1
-
-        # Actualizar la matriz caches_m con el contenido de caches
-        cliente_index = clientes.index(cliente)
-        archivo_index = archivos.index(archivo)
-        caches_m[cliente_index][archivo_index] = int(archivo.split('_')[-1])
-
-
+    
 ##########################################################
 # Delivery phase
 ##########################################################
@@ -150,11 +139,8 @@ for i in range(num_solicitudes): # nº solicitudes
         requests.append(archivo if caches[cliente].get(archivo) is None else 0)
         requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
 
-    print(f"Requests: {requests_int}")
-    print(caches_m)
-    clique_indices = utils.find_largest_clique(requests_int, caches_m)
-    print(f"Clique indices: {clique_indices}")
-    pdb.set_trace()
+    clique_indices = utils.find_largest_clique(requests_int, caches_np)
+    
     # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
     archivos_a_enviar = utils.comprobar_peticiones_repetidas(peticiones)
     tiempo_inicio = i
