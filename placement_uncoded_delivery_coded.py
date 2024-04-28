@@ -88,11 +88,12 @@ K = len(clientes)
 M = len(archivos)
 
 caches_m = [[0 for _ in range(M)] for _ in range(K)]
+
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
     # Implemento HPF
     archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
-
+    
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
         caches[cliente][archivo] = {"timestamp": 0, "popularidad": popularidad_por_archivo[archivo]}
@@ -101,7 +102,7 @@ for cliente, cache in caches.items():
         # Actualizar la matriz caches_m con el contenido de caches
         cliente_index = clientes.index(cliente)
         archivo_index = archivos.index(archivo)
-        caches_m[cliente_index][archivo_index] = 1
+        caches_m[cliente_index][archivo_index] = int(archivo.split('_')[-1])
 
 
 ##########################################################
@@ -146,13 +147,14 @@ for i in range(num_solicitudes): # nº solicitudes
                 "bytes_transferidos": bytes_transferidos,
             })
         cache_hits_list.append(cache_hits)
-        requests.append(1 if caches[cliente].get(archivo) is None else 0)
+        requests.append(archivo if caches[cliente].get(archivo) is None else 0)
+        requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
 
-    print(f"Requests: {requests}")
-    print(peticiones)
-
-    clique_indices = utils.find_largest_clique(requests, caches_m)
+    print(f"Requests: {requests_int}")
+    print(caches_m)
+    clique_indices = utils.find_largest_clique(requests_int, caches_m)
     print(f"Clique indices: {clique_indices}")
+    pdb.set_trace()
     # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
     archivos_a_enviar = utils.comprobar_peticiones_repetidas(peticiones)
     tiempo_inicio = i
@@ -164,17 +166,12 @@ for i in range(num_solicitudes): # nº solicitudes
     for peticion in peticiones:
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
-        caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
         #print(f"#{i+1}: Fallo para {archivo} por {cliente}")
 
-        
-        # Prefetch del archivo más popular
-        
-        # Si la caché está llena, eliminar el archivo menos popular
+        # HPF: Actualización de la cache
         if len(caches[cliente]) >= capacidad_cache:
             archivo_menos_popular = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x]["popularidad"])
             del caches[cliente][archivo_menos_popular]
-
         # Agregar el archivo a la caché y establecer su popularidad
         caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
 
