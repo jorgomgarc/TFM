@@ -48,7 +48,7 @@ for archivo in archivos:
 # plt.show(block=False)
 
 # Política de prefetching
-politica_prefetching = "HPF"  # "LRU", "LFU", "HPF
+politica = "HPF"  # "LRU", "LFU", "HPF
 frecuencia = {}
 
 # Diccionario con caches de los clientes
@@ -67,14 +67,14 @@ peticiones = []
 # Placement phase
 ##########################################################
 
-politica_prefetching = "popularidad"  # "random", "popularidad
+politica_prefetching = "random"  # "random", "popularidad
 
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
     # Implemento HPF
-    if politica_prefetching == "random":
+    if politica_prefetching == "popularidad":
         archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
-    elif politica_prefetching == "popularidad":
+    elif politica_prefetching == "random":
         archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill 'archivos_cliente' with random files
 
     # Almacenar los archivos en la caché
@@ -154,11 +154,8 @@ for i in range(num_solicitudes): # nº solicitudes
     for peticion in peticiones:
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
-        caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
-        #print(f"#{i+1}: Fallo para {archivo} por {cliente}")
-
         # Actualización de la cache
-        if politica_prefetching == "LFU":
+        if politica == "LFU":
             # Se elimina el archivo con menor frecuencia
             if len(caches[cliente]) >= capacidad_cache:
                 archivo_lfu = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x].get("frecuencia", 0))
@@ -166,17 +163,14 @@ for i in range(num_solicitudes): # nº solicitudes
 
             caches[cliente][archivo] = {"frecuencia": frecuencia[cliente][archivo]}
 
-        elif politica_prefetching == "HPF":
-            # Prefetch del archivo más popular
-            
+        elif politica == "HPF":
             # Si la caché está llena, eliminar el archivo menos popular
             if len(caches[cliente]) >= capacidad_cache:
                 archivo_menos_popular = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x]["popularidad"])
                 del caches[cliente][archivo_menos_popular]
-
+               
             # Agregar el archivo a la caché y establecer su popularidad
             caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
-
 
         # Descarga del archivo del almacenamiento principal
         tiempo_descarga = utils.descargar_archivo_del_almacenamiento_principal(size, tasa_bits)
@@ -214,10 +208,10 @@ plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
 plt.xlabel('Número de solicitudes')
 plt.ylabel('Aciertos de caché')
 plt.title('Aciertos de caché vs. Número de solicitudes')
-plt.show()
+plt.show(block=False)
 
 
-if politica_prefetching == "HPF":
+if politica == "HPF":
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
     for cliente, cache in caches.items():
         archivos = list(cache.keys())
@@ -226,9 +220,9 @@ if politica_prefetching == "HPF":
         plt.bar(archivos, popularidades)
         plt.xlabel("Archivos")
         plt.ylabel("Popularidad")
-        plt.title(f"Archivos en la caché de {cliente}")
-        plt.show()
-elif politica_prefetching == "LFU":
+        plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
+
+elif politica == "LFU":
 # Plotear los archivos en cada cache de cada cliente y su frecuencia
     for cliente, cache in caches.items():
         archivos_cache_cliente = list(cache.keys())
@@ -238,7 +232,7 @@ elif politica_prefetching == "LFU":
         plt.xlabel("Archivos")
         plt.ylabel("Frecuencia")
         plt.title(f"Frecuencia de archivos en la caché de {cliente}")
-        plt.show(block=False)
 
 
-plt.show()
+
+# plt.show()
