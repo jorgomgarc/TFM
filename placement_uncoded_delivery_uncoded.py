@@ -47,16 +47,12 @@ for archivo in archivos:
 # plt.title("Popularidad de archivos")
 # plt.show(block=False)
 
-# Política de prefetching
-politica = "HPF"  # "LRU", "LFU", "HPF
-frecuencia = {}
-
 # Diccionario con caches de los clientes
 caches = {}
 
 for cliente in clientes:
     caches[cliente] = {}
-    frecuencia[cliente] = {}
+
 
 # Solicitudes
 solicitudes = []
@@ -121,13 +117,6 @@ for i in range(num_solicitudes): # nº solicitudes
             #print(f"#{i+1}: Hit para {archivo} por {cliente}")
             caches[cliente][archivo]["timestamp"] = i
             tiempo_inicio = i  
-            # Actualizo la frecuencia del archivo
-            # Si el archivo ya está en el diccionario, incrementa su frecuencia
-            if archivo in frecuencia[cliente]:
-                frecuencia[cliente][archivo] += 1
-            # Si el archivo no está en el diccionario, añádelo con frecuencia 1
-            else:
-                frecuencia[cliente][archivo] = 1
             
             # Fin de la solicitud
             tiempo_fin = i
@@ -155,22 +144,15 @@ for i in range(num_solicitudes): # nº solicitudes
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
         # Actualización de la cache
-        if politica == "LFU":
-            # Se elimina el archivo con menor frecuencia
-            if len(caches[cliente]) >= capacidad_cache:
-                archivo_lfu = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x].get("frecuencia", 0))
-                del caches[cliente][archivo_lfu]
 
-            caches[cliente][archivo] = {"frecuencia": frecuencia[cliente][archivo]}
-
-        elif politica == "HPF":
-            # Si la caché está llena, eliminar el archivo menos popular
-            if len(caches[cliente]) >= capacidad_cache:
-                archivo_menos_popular = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x]["popularidad"])
-                del caches[cliente][archivo_menos_popular]
-               
-            # Agregar el archivo a la caché y establecer su popularidad
-            caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
+        # HPF
+        # Si la caché está llena, eliminar el archivo menos popular
+        if len(caches[cliente]) >= capacidad_cache:
+            archivo_menos_popular = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x]["popularidad"])
+            del caches[cliente][archivo_menos_popular]
+            
+        # Agregar el archivo a la caché y establecer su popularidad
+        caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
 
         # Descarga del archivo del almacenamiento principal
         tiempo_descarga = utils.descargar_archivo_del_almacenamiento_principal(size, tasa_bits)
@@ -211,28 +193,15 @@ plt.title('Aciertos de caché vs. Número de solicitudes')
 plt.show(block=False)
 
 
-if politica == "HPF":
+
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
-    for cliente, cache in caches.items():
-        archivos = list(cache.keys())
-        plt.figure()
-        popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
-        plt.bar(archivos, popularidades)
-        plt.xlabel("Archivos")
-        plt.ylabel("Popularidad")
-        plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
-
-elif politica == "LFU":
-# Plotear los archivos en cada cache de cada cliente y su frecuencia
-    for cliente, cache in caches.items():
-        archivos_cache_cliente = list(cache.keys())
-        frecuencias = [frecuencia[cliente][archivo] for archivo in archivos_cache_cliente]
-        plt.figure()
-        plt.bar(archivos_cache_cliente, frecuencias)
-        plt.xlabel("Archivos")
-        plt.ylabel("Frecuencia")
-        plt.title(f"Frecuencia de archivos en la caché de {cliente}")
-
-
+for cliente, cache in caches.items():
+    archivos = list(cache.keys())
+    plt.figure()
+    popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
+    plt.bar(archivos, popularidades)
+    plt.xlabel("Archivos")
+    plt.ylabel("Popularidad")
+    plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
 
 # plt.show()
