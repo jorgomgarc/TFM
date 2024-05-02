@@ -92,6 +92,8 @@ for cliente, cache in caches.items():
 # Delivery phase
 ##########################################################
 cache_hits = 0
+satisfechos = 0
+repetidos = 0
 cache_hits_list = []
 num_solicitudes = 100
 politica_delivery = "popularidad"  # "random", "popularidad"
@@ -133,7 +135,9 @@ for i in range(num_solicitudes): # nº solicitudes
         cache_hits_list.append(cache_hits)
     
     # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
-    archivos_a_enviar = utils.comprobar_peticiones_repetidas(peticiones)
+    archivos_a_enviar, repes = utils.comprobar_peticiones_repetidas(peticiones)
+    satisfechos += len(archivos_a_enviar)
+    repetidos += repes
     tiempo_inicio = i
     # Enviar mensajes a los clientes para entregar los archivos solicitados
     # Calcular el tiempo en enviar los archivos a los clientes
@@ -144,7 +148,7 @@ for i in range(num_solicitudes): # nº solicitudes
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
         # Actualización de la cache
-
+        #print(f"#{i+1}: Envío de {archivo} a {cliente}")
         # HPF
         # Si la caché está llena, eliminar el archivo menos popular
         if len(caches[cliente]) >= capacidad_cache:
@@ -183,6 +187,8 @@ tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 
 print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
+print(f"Requests satisfechas: {satisfechos}")
+print(f"Requests repetidas: {repetidos}")
 
 # Plot the cache hits
 plt.figure()

@@ -1,1 +1,2 @@
 Esta rama va a estar enteramente dedicada a la creación y comparación de distintos tipos de coded caching algorithms
+Dentro de utils están todas las funciones que se llaman desde los archivos principales
