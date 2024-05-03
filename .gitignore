@@ -1,3 +1,4 @@
 .DS*
 files/file*
 pruebas/*
+__pycache__/*

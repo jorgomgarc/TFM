@@ -11,7 +11,7 @@ import numpy as np
 ##########################################################
 
 # Definición de archivos
-archivos = [f"file_{i}" for i in range(1, 51)]
+archivos = [f"file_{i}" for i in range(1, 31)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
@@ -52,7 +52,7 @@ for archivo in archivos:
 
     
 # Definición de clientes
-clientes = [f"cli_{i}" for i in range(1, 11)]
+clientes = [f"cli_{i}" for i in range(1, 31)]
 
 # Definición del servidor
 capacidad_cache = 10
@@ -82,10 +82,15 @@ M = capacidad_cache
 
 caches_np = matriz_np = np.zeros((M, K), dtype=int)
 
+politica_prefetching = "popularidad"  # "random", "popularidad"
+
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
     # Implemento HPF
-    archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
+    if politica_prefetching == "popularidad":
+        archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
+    elif politica_prefetching == "random":
+        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill 'archivos_cliente' with random files
     cliente_int = int(cliente.split('_')[-1])
     #print(cliente_int)
     archivos_cliente_int = [int(archivo.split('_')[-1]) for archivo in archivos_cliente]
@@ -99,8 +104,10 @@ for cliente, cache in caches.items():
 ##########################################################
 
 cache_hits = 0
+satisfechos = 0
 cache_hits_list = []
 num_solicitudes = 100
+politica_delivery = "popularidad"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
@@ -109,7 +116,11 @@ for i in range(num_solicitudes): # nº solicitudes
     cache_hits = 0
     # Generación de peticiones de archivo por cada cliente
     for cliente in clientes:
-        archivo = random.choice(archivos) # Selecciono un archivo aleatorio
+        if politica_delivery == "random":
+            archivo = random.choice(archivos) # Selecciono un archivo aleatorio
+        elif politica_delivery == "popularidad":
+            archivo = random.choices(archivos, weights=[popularidad_por_archivo[x] for x in archivos])[0] # Selecciono un archivo con mayor probabilidad basado en su popularidad
+
     # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
         
@@ -119,7 +130,7 @@ for i in range(num_solicitudes): # nº solicitudes
             
         else:
             # Hit en la caché
-            #print(f"#{i+1}: Hit para {archivo} por {cliente}")
+            # print(f"#{i+1}: Hit para {archivo} por {cliente}")
             caches[cliente][archivo]["timestamp"] = i
             tiempo_inicio = i  
             
@@ -140,9 +151,37 @@ for i in range(num_solicitudes): # nº solicitudes
         requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
 
     clique_indices = utils.find_largest_clique(requests_int, caches_np)
+    archivos_a_enviar = []
+    archivos_solicitados = []
     
-    # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
-    archivos_a_enviar = utils.comprobar_peticiones_repetidas(peticiones)
+
+    if len(clique_indices) != 1:
+        # Obtener los archivos solicitados por los usuarios en la clique
+        # print(requests_int)
+        # print(clique_indices)
+        if clique_indices[0] > clique_indices[1] or clique_indices[0] == clique_indices[1]:
+            archivo_tonto = requests_int[clique_indices[0]]
+            archivos_solicitados.append(f"file_{archivo_tonto}")
+            archivos_solicitados = [archivos_solicitados[0]] + [peticiones[i]["archivo"] for i in clique_indices[1:]]
+        else:
+            archivos_solicitados = [peticiones[i]["archivo"] for i in clique_indices]
+        archivos_repetidos = utils.comprobar_archivos_repetidos(archivos_solicitados)
+        if archivos_repetidos:
+            archivos_a_enviar, _ = utils.comprobar_peticiones_repetidas(peticiones)
+        else:
+            utils.xor_files(archivos_solicitados)
+            pdb.set_trace()
+            archivo_xor = f"file_xor"
+            archivos = [peticion["archivo"] for peticion in peticiones]
+            archivos_a_enviar = [archivo for archivo in archivos if archivo not in archivos_solicitados] + [archivo_xor]
+            archivos_a_enviar = list(set(archivos_a_enviar))
+        
+        # print(archivos_a_enviar)
+        # print('\n')
+
+       
+    #pdb.set_trace()
+    satisfechos += len(archivos_a_enviar) 
     tiempo_inicio = i
     # Enviar mensajes a los clientes para entregar los archivos solicitados
     # Calcular el tiempo en enviar los archivos a los clientes
@@ -152,7 +191,7 @@ for i in range(num_solicitudes): # nº solicitudes
     for peticion in peticiones:
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
-        #print(f"#{i+1}: Fallo para {archivo} por {cliente}")
+        # print(f"#{i+1}: Fallo para {archivo} por {cliente}")
 
         # HPF: Actualización de la cache
         if len(caches[cliente]) >= capacidad_cache:
@@ -189,11 +228,12 @@ print("Simulación finalizada.")
 tiempo_respuesta_promedio = utils.calcular_tiempo_respuesta_promedio(solicitudes)
 tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 
-print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
+# print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
+print(f"Requests satisfechas: {satisfechos}")
 
 # Plot the cache hits
-plt.plot(range(num_solicitudes*capacidad_cache), cache_hits_list)
+plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
 plt.xlabel('Número de solicitudes')
 plt.ylabel('Aciertos de caché')
 plt.title('Aciertos de caché vs. Número de solicitudes')
@@ -210,4 +250,4 @@ for cliente, cache in caches.items():
     plt.ylabel("Popularidad")
     plt.title(f"Archivos en la caché de {cliente}")
 
-#plt.show()
+plt.show()
