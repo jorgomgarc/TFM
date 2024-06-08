@@ -23,10 +23,8 @@ for archivo in archivos:
 # Asignar popularidad a los archivos (de forma random)
 archivos_por_popularidad = {}
 popularidad_por_archivo = {}
-popularidades = []
 for archivo in archivos:
     popularidad = utils.generar_popularidad_random()
-    popularidades.append(popularidad)
     popularidad_por_archivo[archivo] = popularidad
     if popularidad not in archivos_por_popularidad:
         archivos_por_popularidad[popularidad] = []
@@ -39,7 +37,7 @@ for archivo in archivos:
 # plt.xlabel("Archivos")
 # plt.ylabel("Popularidad")
 # plt.title("Popularidad de archivos")
-# plt.show(block=False)
+# plt.show()
 
 # Dividir los archivos en partes
 # numero_partes = 4
@@ -80,7 +78,7 @@ peticiones = []
 K = len(clientes)
 M = capacidad_cache
 
-caches_np = matriz_np = np.zeros((M, K), dtype=int)
+caches_np = np.zeros((M, K), dtype=int)
 
 politica_prefetching = "popularidad"  # "random", "popularidad"
 
@@ -123,7 +121,7 @@ for i in range(num_solicitudes): # nº solicitudes
 
     # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
-        
+
         # Compruebo si el cliente tiene cacheado dicho archivo
         if caches[cliente].get(archivo) is None:
             peticiones.append(peticion)
@@ -149,37 +147,36 @@ for i in range(num_solicitudes): # nº solicitudes
         cache_hits_list.append(cache_hits)
         requests.append(archivo if caches[cliente].get(archivo) is None else 0)
         requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
-
+    
+    print(requests_int)
     clique_indices = utils.find_largest_clique(requests_int, caches_np)
+    print(clique_indices)
     archivos_a_enviar = []
     archivos_solicitados = []
     
-
-    if len(clique_indices) != 1:
+    if len(clique_indices) > 1:
         # Obtener los archivos solicitados por los usuarios en la clique
-        # print(requests_int)
-        # print(clique_indices)
         if clique_indices[0] > clique_indices[1] or clique_indices[0] == clique_indices[1]:
             archivo_tonto = requests_int[clique_indices[0]]
             archivos_solicitados.append(f"file_{archivo_tonto}")
             archivos_solicitados = [archivos_solicitados[0]] + [peticiones[i]["archivo"] for i in clique_indices[1:]]
         else:
             archivos_solicitados = [peticiones[i]["archivo"] for i in clique_indices]
+
         archivos_repetidos = utils.comprobar_archivos_repetidos(archivos_solicitados)
+        
         if archivos_repetidos:
             archivos_a_enviar, _ = utils.comprobar_peticiones_repetidas(peticiones)
         else:
-            utils.xor_files(archivos_solicitados)
             pdb.set_trace()
+            utils.xor_files(archivos_solicitados)
             archivo_xor = f"file_xor"
             archivos = [peticion["archivo"] for peticion in peticiones]
             archivos_a_enviar = [archivo for archivo in archivos if archivo not in archivos_solicitados] + [archivo_xor]
             archivos_a_enviar = list(set(archivos_a_enviar))
-        
-        # print(archivos_a_enviar)
-        # print('\n')
 
-       
+    print(archivos_a_enviar)
+    print('\n')
     #pdb.set_trace()
     satisfechos += len(archivos_a_enviar) 
     tiempo_inicio = i
@@ -241,13 +238,13 @@ plt.show()
 
 
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
-for cliente, cache in caches.items():
-    archivos = list(cache.keys())
-    plt.figure()
-    popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
-    plt.bar(archivos, popularidades)
-    plt.xlabel("Archivos")
-    plt.ylabel("Popularidad")
-    plt.title(f"Archivos en la caché de {cliente}")
+# for cliente, cache in caches.items():
+#     archivos = list(cache.keys())
+#     plt.figure()
+#     popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
+#     plt.bar(archivos, popularidades)
+#     plt.xlabel("Archivos")
+#     plt.ylabel("Popularidad")
+#     plt.title(f"Archivos en la caché de {cliente}")
 
-plt.show()
+# plt.show()

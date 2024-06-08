@@ -72,6 +72,7 @@ def comprobar_peticiones_repetidas(peticiones):
 
     # Eliminar los archivos y clientes repetidos
     archivos_sin_repetir = list(set(archivos))
+    print(archivos_sin_repetir)
     numero_archivos_repetidos = len(archivos) - len(archivos_sin_repetir)
     return archivos_sin_repetir, numero_archivos_repetidos
 
