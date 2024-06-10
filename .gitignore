@@ -2,3 +2,4 @@
 files/file*
 pruebas/*
 __pycache__/*
+.vscode/*

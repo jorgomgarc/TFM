@@ -1,6 +1,5 @@
 import random
 import matplotlib.pyplot as plt
-import pdb
 import utils
 
 ##########################################################
@@ -95,8 +94,8 @@ cache_hits = 0
 satisfechos = 0
 repetidos = 0
 cache_hits_list = []
-num_solicitudes = 100
-politica_delivery = "popularidad"  # "random", "popularidad"
+num_solicitudes = 10000
+politica_delivery = "random"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
@@ -110,7 +109,6 @@ for i in range(num_solicitudes): # nº solicitudes
             archivo = random.choices(archivos, weights=[popularidad_por_archivo[x] for x in archivos])[0] # Selecciono un archivo con mayor probabilidad basado en su popularidad
         # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
-        
         # Compruebo si el cliente tiene cacheado dicho archivo
         if caches[cliente].get(archivo) is None:
             peticiones.append(peticion)
@@ -196,18 +194,18 @@ plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
 plt.xlabel('Número de solicitudes')
 plt.ylabel('Aciertos de caché')
 plt.title('Aciertos de caché vs. Número de solicitudes')
-plt.show(block=False)
+plt.show()
 
 
 
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
-for cliente, cache in caches.items():
-    archivos = list(cache.keys())
-    plt.figure()
-    popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
-    plt.bar(archivos, popularidades)
-    plt.xlabel("Archivos")
-    plt.ylabel("Popularidad")
-    plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
+# for cliente, cache in caches.items():
+#     archivos = list(cache.keys())
+#     plt.figure()
+#     popularidades = [popularidad_por_archivo[archivo] for archivo in archivos]
+#     plt.bar(archivos, popularidades)
+#     plt.xlabel("Archivos")
+#     plt.ylabel("Popularidad")
+#     plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
 
 # plt.show()

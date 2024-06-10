@@ -1,7 +1,5 @@
 import random
 import matplotlib.pyplot as plt
-import pdb
-from pprint import pprint
 import utils
 import numpy as np
 
@@ -11,7 +9,7 @@ import numpy as np
 ##########################################################
 
 # Definición de archivos
-archivos = [f"file_{i}" for i in range(1, 31)]
+archivos = [f"file_{i}" for i in range(1, 21)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
@@ -31,29 +29,19 @@ for archivo in archivos:
     archivos_por_popularidad[popularidad].append(archivo)
 
 # Plotear la distribución de popularidad en archivos
-# plt.figure()
-# for archivo, popularidad in archivos_por_popularidad.items():
-#     plt.bar(popularidad, archivo)
-# plt.xlabel("Archivos")
-# plt.ylabel("Popularidad")
-# plt.title("Popularidad de archivos")
-# plt.show()
+plt.figure()
+for archivo, popularidad in archivos_por_popularidad.items():
+    plt.bar(popularidad, archivo)
+plt.xlabel("Files")
+plt.ylabel("Popularity leveld")
+plt.title("Popularity of files")
+plt.show()
 
-# Dividir los archivos en partes
-# numero_partes = 4
-# partes_por_archivo = {}
-# for archivo in archivos:
-#     partes = utils.dividir_archivo(archivo, numero_partes)
-#     partes_por_archivo[archivo] = [f"{archivo}_{i+1}" for i in range(numero_partes)]
-
-#     print(partes_por_archivo[archivo])
-
-    
 # Definición de clientes
 clientes = [f"cli_{i}" for i in range(1, 31)]
 
 # Definición del servidor
-capacidad_cache = 10
+capacidad_cache = 25
 
 # Definición del canal
 tasa_bits = 1000000 # 1 Mbps
@@ -80,7 +68,7 @@ M = capacidad_cache
 
 caches_np = np.zeros((M, K), dtype=int)
 
-politica_prefetching = "popularidad"  # "random", "popularidad"
+politica_prefetching = "random"  # "random", "popularidad"
 
 for cliente, cache in caches.items():
     # Seleccionar los archivos a almacenar en la caché
@@ -96,7 +84,7 @@ for cliente, cache in caches.items():
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
         caches[cliente][archivo] = {"timestamp": 0, "popularidad": popularidad_por_archivo[archivo]}
-    
+     
 ##########################################################
 # Delivery phase
 ##########################################################
@@ -104,15 +92,15 @@ for cliente, cache in caches.items():
 cache_hits = 0
 satisfechos = 0
 cache_hits_list = []
-num_solicitudes = 100
-politica_delivery = "popularidad"  # "random", "popularidad"
+num_solicitudes = 10000
+politica_delivery = "random"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
     peticiones = []
     requests = []
     cache_hits = 0
-    # Generación de peticiones de archivo por cada cliente
+    # Generación de peticiones de archivo por cada cliente 
     for cliente in clientes:
         if politica_delivery == "random":
             archivo = random.choice(archivos) # Selecciono un archivo aleatorio
@@ -121,7 +109,7 @@ for i in range(num_solicitudes): # nº solicitudes
 
     # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
         peticion = {"archivo": archivo, "cliente": cliente}
-
+        # print(archivo)
         # Compruebo si el cliente tiene cacheado dicho archivo
         if caches[cliente].get(archivo) is None:
             peticiones.append(peticion)
@@ -148,9 +136,8 @@ for i in range(num_solicitudes): # nº solicitudes
         requests.append(archivo if caches[cliente].get(archivo) is None else 0)
         requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
     
-    print(requests_int)
+    # print(requests_int)
     clique_indices = utils.find_largest_clique(requests_int, caches_np)
-    print(clique_indices)
     archivos_a_enviar = []
     archivos_solicitados = []
     
@@ -164,19 +151,19 @@ for i in range(num_solicitudes): # nº solicitudes
             archivos_solicitados = [peticiones[i]["archivo"] for i in clique_indices]
 
         archivos_repetidos = utils.comprobar_archivos_repetidos(archivos_solicitados)
-        
+
         if archivos_repetidos:
             archivos_a_enviar, _ = utils.comprobar_peticiones_repetidas(peticiones)
         else:
-            pdb.set_trace()
+            # pdb.set_trace()
             utils.xor_files(archivos_solicitados)
             archivo_xor = f"file_xor"
             archivos = [peticion["archivo"] for peticion in peticiones]
             archivos_a_enviar = [archivo for archivo in archivos if archivo not in archivos_solicitados] + [archivo_xor]
             archivos_a_enviar = list(set(archivos_a_enviar))
 
-    print(archivos_a_enviar)
-    print('\n')
+    # print(archivos_a_enviar)
+    # print('\n')
     #pdb.set_trace()
     satisfechos += len(archivos_a_enviar) 
     tiempo_inicio = i
