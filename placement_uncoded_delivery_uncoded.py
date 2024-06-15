@@ -7,7 +7,7 @@ import utils
 ##########################################################
 
 # Definición de archivos
-archivos = [f"file_{i}" for i in range(1, 31)]
+archivos = [f"file_{i}" for i in range(1, 21)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
@@ -44,7 +44,7 @@ for archivo in archivos:
 # plt.xlabel("Archivos")
 # plt.ylabel("Popularidad")
 # plt.title("Popularidad de archivos")
-# plt.show(block=False)
+# plt.show()
 
 # Diccionario con caches de los clientes
 caches = {}
@@ -62,15 +62,13 @@ peticiones = []
 # Placement phase
 ##########################################################
 
-politica_prefetching = "random"  # "random", "popularidad
+prefetching_policy = "random"  # "random", "popularity"
 
 for cliente, cache in caches.items():
-    # Seleccionar los archivos a almacenar en la caché
-    # Implemento HPF
-    if politica_prefetching == "popularidad":
+    if prefetching_policy == "popularity":
         archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
-    elif politica_prefetching == "random":
-        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill 'archivos_cliente' with random files
+    elif prefetching_policy == "random":
+        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill cache with random files
 
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
@@ -85,7 +83,9 @@ for cliente, cache in caches.items():
 #     plt.xlabel("Archivos")
 #     plt.ylabel("Popularidad")
 #     plt.title(f"Archivos en la caché de {cliente}")
-#     plt.show(block=False)
+#     plt.show()
+
+# print(caches)
 
 ##########################################################
 # Delivery phase
@@ -94,7 +94,7 @@ cache_hits = 0
 satisfechos = 0
 repetidos = 0
 cache_hits_list = []
-num_solicitudes = 10000
+num_solicitudes = 100
 politica_delivery = "random"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
@@ -177,23 +177,22 @@ for i in range(num_solicitudes): # nº solicitudes
 # Plotear y printear resultados
 #############################################################
 
-print("Simulación finalizada.")
+print("Simulation completed.")
 
 # Medición del rendimiento
 tiempo_respuesta_promedio = utils.calcular_tiempo_respuesta_promedio(solicitudes)
 tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 
-print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
-print(f"Tasa de aciertos en la caché: {tasa_aciertos_cache}")
-print(f"Requests satisfechas: {satisfechos}")
-print(f"Requests repetidas: {repetidos}")
+print(f"Average response time: {tiempo_respuesta_promedio:.3f}")
+print(f"Cache hit rate: {tasa_aciertos_cache:.3f}")
+print(f"Satisfied Requests: {satisfechos}")
 
 # Plot the cache hits
 plt.figure()
 plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
-plt.xlabel('Número de solicitudes')
-plt.ylabel('Aciertos de caché')
-plt.title('Aciertos de caché vs. Número de solicitudes')
+plt.xlabel('Number of requests')
+plt.ylabel('Hits in the cache')
+plt.title('Hits in the cache vs. Number of requests')
 plt.show()
 
 

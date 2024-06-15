@@ -47,7 +47,7 @@ def calcular_tiempo_respuesta_promedio(solicitudes):
 def calcular_tasa_aciertos_cache(solicitudes):
     # Número total de solicitudes
     numero_solicitudes = len(solicitudes)
-    print(f"Número de solicitudes: {numero_solicitudes}")
+    print(f"Number of requests: {numero_solicitudes}")
     # Número de solicitudes que fueron hits en la caché
     numero_aciertos_cache = 0
 
@@ -57,7 +57,7 @@ def calcular_tasa_aciertos_cache(solicitudes):
         if solicitud["hit_cache"]:
             # Incrementar el número de aciertos en la caché
             numero_aciertos_cache += 1
-    print("Número de aciertos en la caché: ", numero_aciertos_cache)
+    print("Hits in the cache: ", numero_aciertos_cache)
     # Calcular la tasa de aciertos en la caché
     tasa_aciertos_cache = numero_aciertos_cache / numero_solicitudes
 
