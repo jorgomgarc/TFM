@@ -29,22 +29,31 @@ for archivo in archivos:
 archivos_por_popularidad = {}
 popularidad_por_archivo = {}
 popularidades = []
-for archivo in archivos:
-    popularidad = utils.generar_popularidad_random()
+# for archivo in archivos:
+#     popularidad = utils.generar_popularidad_random()
+#     popularidades.append(popularidad)
+#     popularidad_por_archivo[archivo] = popularidad
+#     if popularidad not in archivos_por_popularidad:
+#         archivos_por_popularidad[popularidad] = []
+#     archivos_por_popularidad[popularidad].append(archivo)
+
+for i, archivo in enumerate(archivos, start=1):
+    popularidad = i
     popularidades.append(popularidad)
     popularidad_por_archivo[archivo] = popularidad
     if popularidad not in archivos_por_popularidad:
         archivos_por_popularidad[popularidad] = []
     archivos_por_popularidad[popularidad].append(archivo)
 
+
 # Plotear la distribución de popularidad por archivos
-# plt.figure()
-# for archivo, popularidad in popularidad_por_archivo.items():
-#     plt.bar(archivo, popularidad)
-# plt.xlabel("Archivos")
-# plt.ylabel("Popularidad")
-# plt.title("Popularidad de archivos")
-# plt.show()
+plt.figure()
+for archivo, popularidad in popularidad_por_archivo.items():
+    plt.bar(archivo, popularidad)
+plt.xlabel("Archivos")
+plt.ylabel("Popularidad")
+plt.title("Popularidad de archivos")
+plt.show()
 
 # Diccionario con caches de los clientes
 caches = {}
@@ -62,7 +71,9 @@ peticiones = []
 # Placement phase
 ##########################################################
 
-prefetching_policy = "random"  # "random", "popularity"
+prefetching_policy = "popularity"  # "random", "popularity"
+num_solicitudes = 10000
+politica_delivery = "random"  # "random", "popularidad"
 
 for cliente, cache in caches.items():
     if prefetching_policy == "popularity":
@@ -94,8 +105,6 @@ cache_hits = 0
 satisfechos = 0
 repetidos = 0
 cache_hits_list = []
-num_solicitudes = 100
-politica_delivery = "random"  # "random", "popularidad"
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
@@ -131,10 +140,11 @@ for i in range(num_solicitudes): # nº solicitudes
                 "bytes_transferidos": bytes_transferidos,
             })
         cache_hits_list.append(cache_hits)
-    
+        
     # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
     archivos_a_enviar, repes = utils.comprobar_peticiones_repetidas(peticiones)
     satisfechos += len(archivos_a_enviar)
+    print(repes)
     repetidos += repes
     tiempo_inicio = i
     # Enviar mensajes a los clientes para entregar los archivos solicitados
@@ -186,14 +196,15 @@ tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 print(f"Average response time: {tiempo_respuesta_promedio:.3f}")
 print(f"Cache hit rate: {tasa_aciertos_cache:.3f}")
 print(f"Satisfied Requests: {satisfechos}")
+print(f"Repeated Requests: {repetidos}")
 
 # Plot the cache hits
-plt.figure()
-plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
-plt.xlabel('Number of requests')
-plt.ylabel('Hits in the cache')
-plt.title('Hits in the cache vs. Number of requests')
-plt.show()
+# plt.figure()
+# plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
+# plt.xlabel('Number of requests')
+# plt.ylabel('Hits in the cache')
+# plt.title('Hits in the cache vs. Number of requests')
+# plt.show()
 
 
 

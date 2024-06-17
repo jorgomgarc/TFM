@@ -114,7 +114,22 @@ def xor_files(filenames):
     with open("files/file_xor", "wb") as f:
         f.write(result.to_bytes(1, 'little'))
 
-
+def seleccionar_archivo(politica_delivery, archivos, popularidad_por_archivo):
+    if politica_delivery == "popularidad":
+        # Asegúrate de que todos los archivos tienen una popularidad definida
+        archivos_validos = [archivo for archivo in archivos if archivo in popularidad_por_archivo]
+        popularidades_validas = [popularidad_por_archivo[archivo] for archivo in archivos_validos]
+        
+        # Selecciona un archivo basado en la popularidad
+        if archivos_validos:  # Asegúrate de que hay archivos válidos antes de seleccionar
+            archivo_seleccionado = random.choices(archivos_validos, weights=popularidades_validas, k=1)[0]
+            return archivo_seleccionado
+        else:
+            pdb.set_trace()
+            return None  # O maneja el caso donde no hay archivos válidos
+    elif politica_delivery == "random":
+        pdb.set_trace()
+        return random.choice(archivos)
 
 # This function takes a ROW K-VECTOR of requests from the different users
 # (0 for no request) and a MxK matrix of cache contents and finds a

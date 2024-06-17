@@ -77,7 +77,7 @@ def ejecutar_simulacion(capacidad_cache):
     satisfechos = 0
     cache_hits_list = []
     num_solicitudes = 10000
-    politica_delivery = "popularidad"  # "random", "popularidad"
+    delivery_policy = "popularity"  # "random", "popularity"
 
     for i in range(num_solicitudes): # nº solicitudes
         peticiones = []
@@ -85,9 +85,9 @@ def ejecutar_simulacion(capacidad_cache):
         cache_hits = 0
 
         for cliente in clientes:
-            if politica_delivery == "random":
+            if delivery_policy == "random":
                 archivo = random.choice(archivos)
-            elif politica_delivery == "popularidad":
+            elif delivery_policy == "popularity":
                 archivo = random.choices(archivos, weights=[popularidad_por_archivo[x] for x in archivos])[0]
 
             peticion = {"archivo": archivo, "cliente": cliente}
