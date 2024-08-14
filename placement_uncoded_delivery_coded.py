@@ -10,7 +10,7 @@ import pdb
 ##########################################################
 
 # Definición de archivos
-archivos = [f"file_{i}" for i in range(1, 31)]
+archivos = [f"file_{i}" for i in range(1, 101)]
 
 # Tamaño de los archivos
 size = 1000  # 10 bytes
@@ -19,7 +19,7 @@ size = 1000  # 10 bytes
 clientes = [f"cli_{i}" for i in range(1, 31)]
 
 # Definición del servidor
-capacidad_cache = 10
+capacidad_cache = 70
 
 # Definición del canal
 tasa_bits = 1000000 # 1 Mbps

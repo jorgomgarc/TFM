@@ -1,6 +1,9 @@
 import random
 import matplotlib.pyplot as plt
 import utils
+import numpy as np
+import pdb
+
 
 ##########################################################
 # Parameters definition
@@ -16,7 +19,7 @@ size = 1000  # 10 bytes
 clientes = [f"cli_{i}" for i in range(1, 31)]
 
 # Definición del servidor
-capacidad_cache = 20
+capacidad_cache = 10
 
 # Definición del canal
 tasa_bits = 1000000 # 1 Mbps
@@ -31,7 +34,6 @@ popularidad_por_archivo = {}
 popularidades = []
 # for archivo in archivos:
 #     popularidad = utils.generar_popularidad_random()
-#     popularidades.append(popularidad)
 #     popularidad_por_archivo[archivo] = popularidad
 #     if popularidad not in archivos_por_popularidad:
 #         archivos_por_popularidad[popularidad] = []
@@ -45,22 +47,20 @@ for i, archivo in enumerate(archivos, start=1):
         archivos_por_popularidad[popularidad] = []
     archivos_por_popularidad[popularidad].append(archivo)
 
-
-# Plotear la distribución de popularidad por archivos
+# Plotear la distribución de popularidad en archivos
 # plt.figure()
-# for archivo, popularidad in popularidad_por_archivo.items():
-#     plt.bar(archivo, popularidad)
-# plt.xlabel("Archivos")
-# plt.ylabel("Popularidad")
-# plt.title("Popularidad de archivos")
-# plt.show()
+# for archivo, popularidad in archivos_por_popularidad.items():
+#     plt.bar(popularidad, archivo)
+# plt.xlabel("Files")
+# plt.ylabel("Popularity leveld")
+# plt.title("Popularity of files")
+# plt.show(block=False)
 
 # Diccionario con caches de los clientes
 caches = {}
 
 for cliente in clientes:
     caches[cliente] = {}
-
 
 # Solicitudes
 solicitudes = []
@@ -71,19 +71,30 @@ peticiones = []
 # Placement phase
 ##########################################################
 
-prefetching_policy = "popularity"  # "random", "popularity"
+# implementar prefetching de acuerdo con clique algorithm
+
+K = len(clientes)
+M = capacidad_cache
+
+caches_np = np.zeros((M, K), dtype=int)
+
+politica_prefetching = "popularidad"  # "random", "popularidad"
 num_solicitudes = 10000
-politica_delivery = "random"  # "random", "popularidad"
+politica_delivery = "popularidad"  # "random", "popularidad"
 
 for cliente, cache in caches.items():
-    if prefetching_policy == "popularity":
+    if politica_prefetching == "popularidad":
         archivos_cliente = sorted(archivos, key=lambda x: popularidad_por_archivo[x], reverse=True)[:capacidad_cache]
-    elif prefetching_policy == "random":
-        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill cache with random files
+    elif politica_prefetching == "random":
+        archivos_cliente = random.sample(archivos, min(len(archivos), capacidad_cache))  # Fill 'archivos_cliente' with random files
 
+    cliente_int = int(cliente.split('_')[-1])
+    archivos_cliente_int = [int(archivo.split('_')[-1]) for archivo in archivos_cliente]
+    caches_np[:, cliente_int-1] = archivos_cliente_int
     # Almacenar los archivos en la caché
     for archivo in archivos_cliente:
         caches[cliente][archivo] = {"timestamp": 0, "popularidad": popularidad_por_archivo[archivo]}
+
 
 # Plotear los archivos en cada cache de cada cliente ANTES de delivery phase
 # for cliente, cache in caches.items():
@@ -91,41 +102,45 @@ for cliente, cache in caches.items():
 #     plt.figure()
 #     popularidades = [popularidad_por_archivo[archivo] for archivo in archivos_cache_cliente]
 #     plt.bar(archivos_cache_cliente, popularidades)
-#     plt.xlabel("Archivos")
-#     plt.ylabel("Popularidad")
-#     plt.title(f"Archivos en la caché de {cliente}")
+#     plt.xlabel("Files")
+#     plt.ylabel("Popularity")
+#     plt.title(f"Files in the cache of {cliente}")
 #     plt.show()
 
 # print(caches)
 
+# pdb.set_trace() 
+     
 ##########################################################
 # Delivery phase
 ##########################################################
+
 cache_hits = 0
 satisfechos = 0
-repetidos = 0
 cache_hits_list = []
+repetidos = 0
 # Simulación del sistema
 for i in range(num_solicitudes): # nº solicitudes
     # Resetear las variables
     peticiones = []
+    requests = []
     cache_hits = 0
-    # Generación de peticiones de archivo por cada cliente
+    # Generación de peticiones de archivo por cada cliente 
     for cliente in clientes:
         if politica_delivery == "random":
             archivo = random.choice(archivos) # Selecciono un archivo aleatorio
         elif politica_delivery == "popularidad":
             archivo = random.choices(archivos, weights=[popularidad_por_archivo[x] for x in archivos])[0] # Selecciono un archivo con mayor probabilidad basado en su popularidad
-        # archivo = max(archivos, key=lambda x: popularidad_por_archivo[x]) # Selecciono el archivo más popular
+        
         peticion = {"archivo": archivo, "cliente": cliente}
         # Compruebo si el cliente tiene cacheado dicho archivo
         if caches[cliente].get(archivo) is None:
             peticiones.append(peticion)
         else:
             # Hit en la caché
-            #print(f"#{i+1}: Hit para {archivo} por {cliente}")
+            # print(f"#{i+1}: Hit para {archivo} por {cliente}")
             caches[cliente][archivo]["timestamp"] = i
-            tiempo_inicio = i  
+            tiempo_inicio = i
             
             # Fin de la solicitud
             tiempo_fin = i
@@ -140,30 +155,58 @@ for i in range(num_solicitudes): # nº solicitudes
                 "bytes_transferidos": bytes_transferidos,
             })
         cache_hits_list.append(cache_hits)
-        
-    # Compruebo si hay peticiones de archivos repetidos, para enviarlos en un solo mensaje
-    archivos_a_enviar, repes = utils.comprobar_peticiones_repetidas(peticiones)
-    satisfechos += len(archivos_a_enviar)
+
+        requests.append(archivo if caches[cliente].get(archivo) is None else 0)
+        requests_int = [int(x.split('_')[-1]) if isinstance(x, str) else x for x in requests]
+
+    
+    clique_indices = utils.find_largest_clique(requests_int, caches_np)
+    archivos_a_enviar = []
+    archivos_solicitados = []
+    _, repes = utils.comprobar_peticiones_repetidas(peticiones)
     repetidos += repes
+
+    # pdb.set_trace()
+    if len(clique_indices) > 1:
+        # Obtener los archivos solicitados por los usuarios en la clique
+        if clique_indices[0] > clique_indices[1] or clique_indices[0] == clique_indices[1]:
+            archivo_tonto = requests_int[clique_indices[0]]
+            archivos_solicitados.append(f"file_{archivo_tonto}")
+            archivos_solicitados = [archivos_solicitados[0]] + [peticiones[i]["archivo"] for i in clique_indices[1:]]
+        else:
+            archivos_solicitados = [peticiones[i]["archivo"] for i in clique_indices]
+
+        archivos_repetidos = utils.comprobar_archivos_repetidos(archivos_solicitados)
+
+        if archivos_repetidos:
+            archivos_a_enviar, _ = utils.comprobar_peticiones_repetidas(peticiones)
+        else:
+            utils.xor_files(archivos_solicitados)
+            archivo_xor = f"file_xor"
+            archivos = [peticion["archivo"] for peticion in peticiones]
+            archivos_a_enviar = [archivo for archivo in archivos if archivo not in archivos_solicitados] + [archivo_xor]
+            archivos_a_enviar = list(set(archivos_a_enviar))
+
+    # print(archivos_a_enviar)
+    satisfechos += len(archivos_a_enviar) 
     tiempo_inicio = i
     # Enviar mensajes a los clientes para entregar los archivos solicitados
     # Calcular el tiempo en enviar los archivos a los clientes
     tiempo_envio = utils.tiempo_envio_archivos(archivos_a_enviar, tasa_bits, size)
     
+    
     # Actualizar las caches de los clientes:
     for peticion in peticiones:
         archivo = peticion["archivo"]
         cliente = peticion["cliente"]
-        # Actualización de la cache
-        #print(f"#{i+1}: Envío de {archivo} a {cliente}")
-        # HPF
-        # Si la caché está llena, eliminar el archivo menos popular
+
+        # HPF: 
         if len(caches[cliente]) >= capacidad_cache:
             archivo_menos_popular = min(caches[cliente].keys(), key=lambda x, cliente=cliente: caches[cliente][x]["popularidad"])
             del caches[cliente][archivo_menos_popular]
-            
-        # Agregar el archivo a la caché y establecer su popularidad
+        # Add the file to the cache and set its popularity
         caches[cliente][archivo] = {"timestamp": i, "popularidad": popularidad_por_archivo[archivo]}
+
 
         # Descarga del archivo del almacenamiento principal
         tiempo_descarga = utils.descargar_archivo_del_almacenamiento_principal(size, tasa_bits)
@@ -180,7 +223,8 @@ for i in range(num_solicitudes): # nº solicitudes
             "hit_cache": hit_cache,
             "bytes_transferidos": bytes_transferidos,
         })
-    #pdb.set_trace()
+    
+    # pdb.set_trace()
   
 #############################################################
 # Plotear y printear resultados
@@ -192,19 +236,18 @@ print("Simulation completed.")
 tiempo_respuesta_promedio = utils.calcular_tiempo_respuesta_promedio(solicitudes)
 tasa_aciertos_cache = utils.calcular_tasa_aciertos_cache(solicitudes)
 
+# print(f"Tiempo de respuesta promedio: {tiempo_respuesta_promedio}")
 print(f"Average response time: {tiempo_respuesta_promedio:.3f}")
-print(f"Cache hit rate: {tasa_aciertos_cache:.3f}")
-print(f"Satisfied Requests: {satisfechos}")
-print(f"Repeated Requests: {repetidos}")
+print(f"Hit cache rate: {tasa_aciertos_cache:.3f}")
+print(f"Satisfied requests: {satisfechos}")
+print(f"Repeated requests: {repetidos}")
 
 # Plot the cache hits
-# plt.figure()
 # plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
-# plt.xlabel('Number of requests')
-# plt.ylabel('Hits in the cache')
-# plt.title('Hits in the cache vs. Number of requests')
+# plt.xlabel('Número de solicitudes')
+# plt.ylabel('Aciertos de caché')
+# plt.title('Aciertos de caché vs. Número de solicitudes')
 # plt.show()
-
 
 
 # Plotear los archivos en cada cache de cada cliente y su nivel de popularidad
@@ -215,6 +258,6 @@ print(f"Repeated Requests: {repetidos}")
 #     plt.bar(archivos, popularidades)
 #     plt.xlabel("Archivos")
 #     plt.ylabel("Popularidad")
-#     plt.title(f"Archivos en la caché de {cliente} después de la fase de entrega")
+#     plt.title(f"Archivos en la caché de {cliente}")
 
 # plt.show()

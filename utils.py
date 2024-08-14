@@ -27,6 +27,44 @@ def descargar_archivo_del_almacenamiento_principal(size, tasa_bits):
 
     return tiempo_descarga
 
+# def calcular_ancho_de_banda(solicitudes, tasa_bits, size):
+#     """
+#     Calcula el ancho de banda utilizado durante las solicitudes.
+
+#     Args:
+#     solicitudes (list): Lista de solicitudes con información de tiempo y bytes transferidos.
+#     tasa_bits (int): Tasa de bits del canal.
+#     size (int): Tamaño de los archivos.
+
+#     Returns:
+#     float: Ancho de banda promedio utilizado.
+#     """
+#     total_bytes_transferidos = sum(solicitud['bytes_transferidos'] for solicitud in solicitudes)
+#     tiempo_total = max(solicitud['tiempo_fin'] for solicitud in solicitudes) - min(solicitud['tiempo_inicio'] for solicitud in solicitudes)
+    
+#     # Convertir bytes a bits
+#     total_bits_transferidos = total_bytes_transferidos * 8
+    
+#     # Ancho de banda promedio en bits por segundo
+#     ancho_de_banda = total_bits_transferidos / tiempo_total if tiempo_total > 0 else 0
+    
+#     return ancho_de_banda
+
+# Asegúrate de agregar esta función a tu módulo utils.py si no está definida allí.
+
+
+def calcular_ancho_de_banda(solicitudes):
+    total_bytes_transferidos = sum(solicitud['bytes_transferidos'] for solicitud in solicitudes)
+    tiempo_total = max(solicitud['tiempo_fin'] for solicitud in solicitudes) - min(solicitud['tiempo_inicio'] for solicitud in solicitudes)
+    
+    # Convertir bytes a bits
+    total_bits_transferidos = total_bytes_transferidos * 8
+    
+    # Ancho de banda promedio en bits por segundo
+    ancho_de_banda = total_bits_transferidos / tiempo_total if tiempo_total > 0 else 0
+    
+    return ancho_de_banda
+
 def calcular_tiempo_respuesta_promedio(solicitudes):
     # Lista para almacenar los tiempos de respuesta
     tiempos_respuesta = []
