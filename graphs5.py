@@ -173,7 +173,7 @@ for M in M_values:
     print("Simulation completed.")
     tasa_aciertos_cache, n = utils.calcular_tasa_aciertos_cache(solicitudes)
     # Medición del rendimiento
-    print(f"Satisfied Requests: {satisfechos}")
+    print(f"Transmitted Packets: {satisfechos}")
     results_cache_hits.append(n)
     print(f"Repeated Requests: {repetidos}")
     results_cstisfied_requests.append(satisfechos)
@@ -182,11 +182,11 @@ for M in M_values:
  # Plotting the results
 plt.figure(figsize=(12, 8))
 plt.plot(M_values, results_cache_hits, label='Cache Hits')
-plt.plot(M_values, results_cstisfied_requests, label='Satisfied Requests')
+plt.plot(M_values, results_cstisfied_requests, label='Transmitted Packets')
 
 plt.xlabel('M (Files per cache)')
-plt.ylabel('Satisfied Requests')
-plt.title('Comparison between satisfied requests and cache hits')
+plt.ylabel('Transmitted Packets')
+plt.title('Comparison between transmitted packets and cache hits')
 plt.legend()
 plt.grid(True)
 plt.show()

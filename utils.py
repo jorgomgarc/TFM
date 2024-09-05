@@ -99,7 +99,7 @@ def calcular_tasa_aciertos_cache(solicitudes):
     # Calcular la tasa de aciertos en la caché
     tasa_aciertos_cache = numero_aciertos_cache / numero_solicitudes
 
-    return tasa_aciertos_cache
+    return tasa_aciertos_cache, numero_aciertos_cache
 
 def comprobar_peticiones_repetidas(peticiones):
     # Obtener la lista de archivos y clientes de las peticiones

@@ -72,7 +72,7 @@ peticiones = []
 ##########################################################
 
 prefetching_policy = "popularity"  # "random", "popularity"
-num_solicitudes = 10000
+num_solicitudes = 100
 politica_delivery = "random"  # "random", "popularidad"
 
 for cliente, cache in caches.items():
@@ -198,12 +198,12 @@ print(f"Satisfied Requests: {satisfechos}")
 print(f"Repeated Requests: {repetidos}")
 
 # Plot the cache hits
-# plt.figure()
-# plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
-# plt.xlabel('Number of requests')
-# plt.ylabel('Hits in the cache')
-# plt.title('Hits in the cache vs. Number of requests')
-# plt.show()
+plt.figure()
+plt.plot(range(num_solicitudes*len(clientes)), cache_hits_list)
+plt.xlabel('Number of requests', fontsize=18)
+plt.ylabel('Hits in the cache', fontsize=18)
+plt.title('Hits in the cache vs. Number of requests', fontsize=18)
+plt.show()
 
 
 
